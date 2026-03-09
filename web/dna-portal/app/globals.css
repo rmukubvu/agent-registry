@@ -15,8 +15,8 @@ html {
 body {
   min-height: 100vh;
   background:
-    linear-gradient(180deg, rgba(22, 104, 227, 0.05), transparent 12rem),
-    linear-gradient(180deg, #fbfdfe 0%, #f6f9fb 48%, #f1f5f8 100%);
+    linear-gradient(180deg, rgba(22, 104, 227, 0.045), transparent 10rem),
+    linear-gradient(180deg, #f8fbfd 0%, #f3f7fa 52%, #edf3f7 100%);
   color: #15232d;
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
 }
@@ -36,8 +36,8 @@ body::before {
   pointer-events: none;
   background-image: linear-gradient(rgba(214, 224, 231, 0.24) 1px, transparent 1px),
     linear-gradient(90deg, rgba(214, 224, 231, 0.24) 1px, transparent 1px);
-  background-size: 32px 32px;
-  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.15), transparent 32rem);
+  background-size: 36px 36px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.1), transparent 26rem);
 }
 
 /* Scrollbar */

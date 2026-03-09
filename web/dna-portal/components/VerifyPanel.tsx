@@ -27,11 +27,11 @@ export default function VerifyPanel() {
   }
 
   return (
-    <div className="space-y-5 rounded-[24px] border border-border bg-panel p-6">
+    <div className="space-y-5 rounded-[20px] border border-border bg-panel p-5">
       <div className="space-y-2">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-soft">Live verification</p>
-        <h3 className="text-xl font-semibold text-ink">Run a live registry and policy check</h3>
-        <p className="text-sm leading-6 text-soft">
+        <h3 className="text-[1.65rem] font-semibold leading-[1.15] text-ink">Run a live registry and policy check</h3>
+        <p className="text-sm leading-7 text-soft">
           Query a DNA record, inspect its declared scope, and send the same identifier through the enforcer.
         </p>
       </div>
@@ -60,7 +60,7 @@ export default function VerifyPanel() {
       {verify && (
         <div className="space-y-4 pt-1">
           {/* Registry result */}
-          <div className="space-y-3 rounded-[20px] border border-border bg-muted p-4">
+          <div className="space-y-3 rounded-[18px] border border-border bg-muted p-4">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-soft">Registry status</span>
               <StatusBadge status={verify.status} />

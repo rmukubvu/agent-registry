@@ -91,20 +91,21 @@ export default function DashboardPage() {
       <main className="mx-auto max-w-[1180px] px-6 py-8">
         <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-8">
-            <section id="overview" className="rounded-[24px] border border-border bg-panel px-7 py-8 sm:px-10">
-              <div className="max-w-[820px] space-y-6">
+            <section id="overview" className="rounded-[20px] border border-border bg-panel px-7 py-8 sm:px-10">
+              <div className="max-w-[760px] space-y-6">
                 <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-soft">
                   <BookOpen size={14} />
                   Agent governance infrastructure
                 </div>
+                <div className="h-px w-24 bg-border" />
                 <div className="space-y-4">
                   <h1
-                    className="max-w-3xl text-[2.6rem] leading-[1.05] text-ink sm:text-[3.45rem]"
+                    className="max-w-[720px] text-[2.45rem] leading-[1.02] text-ink sm:text-[3.2rem]"
                     style={{ fontFamily: 'var(--font-serif)' }}
                   >
                     Identity infrastructure for serious agent systems.
                   </h1>
-                  <p className="max-w-2xl text-base leading-8 text-soft sm:text-[1.05rem]">
+                  <p className="max-w-[640px] text-base leading-8 text-soft sm:text-[1.02rem]">
                     Agent DNA gives teams a neutral control plane for agent identity. Register records, review delegated
                     worker relationships, and demonstrate policy enforcement from a single operational surface.
                   </p>
@@ -125,10 +126,10 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <div className="grid gap-4 lg:grid-cols-3">
+                <div className="grid gap-3 lg:grid-cols-3">
                   {principles.map(principle => (
-                    <div key={principle.title} className="rounded-[20px] border border-border bg-panel px-5 py-5">
-                      <div className="mb-4 inline-flex rounded-2xl border border-blue-200 bg-accentSoft p-3">
+                    <div key={principle.title} className="rounded-[18px] border border-border bg-panel px-4 py-4">
+                      <div className="mb-3 inline-flex rounded-2xl border border-blue-200 bg-accentSoft p-2.5">
                         {principle.icon}
                       </div>
                       <h2 className="text-base font-semibold text-ink">{principle.title}</h2>
@@ -137,7 +138,7 @@ export default function DashboardPage() {
                   ))}
                 </div>
 
-                <div className="rounded-[20px] border border-blue-200 bg-accentSoft px-5 py-4 text-sm leading-7 text-[#24507b]">
+                <div className="rounded-[18px] border border-blue-200 bg-accentSoft px-5 py-4 text-sm leading-7 text-[#24507b]">
                   The portal is now positioned more like documentation than a security dashboard, so the product reads as a standards-ready platform rather than an internal admin tool.
                 </div>
               </div>
@@ -181,7 +182,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-5 lg:sticky lg:top-20">
-            <section className="rounded-[24px] border border-border bg-panel p-6">
+            <section className="rounded-[20px] border border-border bg-panel p-5">
               <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-soft">
                 <PanelRight size={14} />
                 On this page
@@ -192,7 +193,7 @@ export default function DashboardPage() {
                 <a href="#registry" className="block rounded-xl px-3 py-2 text-soft transition-colors hover:bg-muted hover:text-ink">Registered identities</a>
                 <a href="#verification" className="block rounded-xl px-3 py-2 text-soft transition-colors hover:bg-muted hover:text-ink">Verification</a>
               </nav>
-              <div className="mt-5 rounded-[20px] border border-border bg-muted px-4 py-4">
+              <div className="mt-5 rounded-[18px] border border-border bg-muted px-4 py-4">
                 <p className="text-sm font-semibold text-ink">Presentation note</p>
                 <p className="mt-2 text-sm leading-7 text-soft">
                   This interface is intentionally restrained so the governance model reads clearly in technical and executive settings.
