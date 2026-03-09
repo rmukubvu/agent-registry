@@ -1,0 +1,6 @@
+rootProject.name = 'agent-dna'
+
+include(
+    'services:dna-registry',
+    'services:dna-enforcer'
+)

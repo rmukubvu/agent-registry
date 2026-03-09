@@ -1,0 +1,15 @@
+plugins {
+    id 'io.quarkus' version '3.17.6'
+}
+
+dependencies {
+    implementation enforcedPlatform("io.quarkus.platform:quarkus-bom:${quarkusVersion}")
+    implementation 'io.quarkus:quarkus-rest-jackson'
+    implementation 'io.quarkus:quarkus-arc'
+
+    implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
+    implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${jacksonVersion}"
+
+    testImplementation 'io.quarkus:quarkus-junit5'
+    testImplementation 'jakarta.ws.rs:jakarta.ws.rs-api:3.1.0'
+}

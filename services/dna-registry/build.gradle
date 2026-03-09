@@ -1,0 +1,24 @@
+plugins {
+    id 'io.quarkus' version '3.17.6'
+}
+
+dependencies {
+    // Quarkus
+    implementation enforcedPlatform("io.quarkus.platform:quarkus-bom:${quarkusVersion}")
+    implementation 'io.quarkus:quarkus-rest-jackson'
+    implementation 'io.quarkus:quarkus-agroal'
+    implementation 'io.quarkus:quarkus-flyway'
+    implementation 'io.quarkus:quarkus-arc'
+    implementation 'io.quarkus:quarkus-jdbc-postgresql'
+
+    // jOOQ
+    implementation "org.jooq:jooq:${jooqVersion}"
+
+    // Jackson
+    implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
+    implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${jacksonVersion}"
+
+    // Test
+    testImplementation 'io.quarkus:quarkus-junit5'
+    testImplementation 'jakarta.ws.rs:jakarta.ws.rs-api:3.1.0'
+}
