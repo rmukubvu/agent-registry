@@ -9,8 +9,12 @@ COPY gradle/ gradle/
 # Both services (settings.gradle references both)
 COPY services/ services/
 
-# Disable toolchain auto-download so Gradle uses the container JDK
-ENV GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx2g -Dorg.gradle.java.installations.auto-download=false"
+# Eclipse Temurin sets JAVA_HOME=/opt/java/openjdk. Tell Gradle's toolchain
+# resolver to scan that path instead of auto-downloading a new JDK.
+ENV JAVA_HOME=/opt/java/openjdk
+ENV GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx2g \
+  -Dorg.gradle.java.installations.auto-download=false \
+  -Dorg.gradle.java.installations.fromEnv=JAVA_HOME"
 
 RUN chmod +x gradlew && \
     ./gradlew :services:dna-registry:quarkusBuild \
@@ -28,8 +32,6 @@ COPY --from=build /app/services/dna-registry/build/quarkus-app/app/     app/
 COPY --from=build /app/services/dna-registry/build/quarkus-app/quarkus/ quarkus/
 
 EXPOSE 8081
-
-# Quarkus reads QUARKUS_* env vars; override port via env if needed
 ENV QUARKUS_HTTP_PORT=8081
 
 CMD ["java", "-jar", "quarkus-run.jar"]
