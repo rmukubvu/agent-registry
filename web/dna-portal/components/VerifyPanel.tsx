@@ -27,42 +27,48 @@ export default function VerifyPanel() {
   }
 
   return (
-    <div className="bg-panel border border-border rounded-xl p-5 space-y-4">
-      <h3 className="text-sm font-semibold text-white">Live Verification</h3>
+    <div className="space-y-5 rounded-[24px] border border-border bg-panel p-6">
+      <div className="space-y-2">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-soft">Live verification</p>
+        <h3 className="text-xl font-semibold text-ink">Run a live registry and policy check</h3>
+        <p className="text-sm leading-6 text-soft">
+          Query a DNA record, inspect its declared scope, and send the same identifier through the enforcer.
+        </p>
+      </div>
 
       <div className="flex gap-2">
         <input
           value={dnaId} onChange={e => setDnaId(e.target.value)}
           placeholder="DNA ID (UUID)" onKeyDown={e => e.key === 'Enter' && run()}
-          className="flex-1 bg-surface border border-border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-accent font-mono"
+          className="flex-1 rounded-2xl border border-border bg-muted px-4 py-3 text-sm text-ink placeholder:text-soft focus:outline-none focus:border-accent focus:bg-panel font-mono"
         />
         <button onClick={run} disabled={busy || !dnaId.trim()}
-          className="px-3 py-2 bg-accent hover:bg-accent/80 rounded-lg text-white transition-colors disabled:opacity-40">
+          className="rounded-2xl border border-accent bg-accent px-4 py-3 text-white transition-colors hover:bg-[#1158c3] disabled:cursor-not-allowed disabled:opacity-40">
           <Search size={16} />
         </button>
       </div>
 
       <div className="flex gap-2 items-center">
-        <span className="text-xs text-gray-400">Tool:</span>
+        <span className="text-xs font-medium uppercase tracking-[0.16em] text-soft">Tool</span>
         <input value={tool} onChange={e => setTool(e.target.value)}
-          className="flex-1 bg-surface border border-border rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-accent font-mono"
+          className="flex-1 rounded-2xl border border-border bg-muted px-4 py-2.5 text-xs text-ink placeholder:text-soft focus:outline-none focus:border-accent focus:bg-panel font-mono"
         />
       </div>
 
-      {error && <p className="text-danger text-xs">{error}</p>}
+      {error && <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-danger">{error}</p>}
 
       {verify && (
-        <div className="space-y-3 pt-1">
+        <div className="space-y-4 pt-1">
           {/* Registry result */}
-          <div className="rounded-lg bg-surface border border-border p-3 space-y-2">
+          <div className="space-y-3 rounded-[20px] border border-border bg-muted p-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-400">Registry status</span>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-soft">Registry status</span>
               <StatusBadge status={verify.status} />
             </div>
-            <div className="text-sm font-medium text-white">{verify.agentName}</div>
+            <div className="text-base font-semibold text-ink">{verify.agentName}</div>
             <div className="flex flex-wrap gap-1">
               {verify.capabilities.map(c => (
-                <span key={c} className="text-xs bg-accent/10 border border-accent/20 text-accent px-2 py-0.5 rounded-full">
+                <span key={c} className="rounded-full border border-blue-200 bg-white px-2.5 py-1 text-xs font-medium text-accent">
                   {c}
                 </span>
               ))}
@@ -71,10 +77,10 @@ export default function VerifyPanel() {
 
           {/* Enforcer result */}
           {enforce && (
-            <div className={`rounded-lg border p-3 flex items-start gap-3 ${
+            <div className={`flex items-start gap-3 rounded-[20px] border p-3 ${
               enforce.allowed
-                ? 'bg-positive/5 border-positive/20'
-                : 'bg-danger/5 border-danger/20'
+                ? 'bg-emerald-50 border-emerald-200'
+                : 'bg-rose-50 border-rose-200'
             }`}>
               {enforce.allowed
                 ? <ShieldCheck size={20} className="text-positive mt-0.5 shrink-0" />
@@ -84,7 +90,7 @@ export default function VerifyPanel() {
                 <div className={`text-sm font-semibold ${enforce.allowed ? 'text-positive' : 'text-danger'}`}>
                   {enforce.allowed ? 'TOOL CALL ALLOWED' : 'TOOL CALL BLOCKED'}
                 </div>
-                <div className="text-xs text-gray-400 mt-0.5">
+                <div className="mt-1 text-sm leading-6 text-soft">
                   {enforce.reason ?? `${enforce.toolName} — permitted`}
                 </div>
               </div>

@@ -21,23 +21,26 @@ export default function AgentTable({ agents, onRefresh }: Props) {
 
   if (agents.length === 0) {
     return (
-      <div className="text-center py-20 text-gray-500">
-        No agents registered yet. Click <span className="text-accent">+ Register Agent</span> to begin.
+      <div className="rounded-[24px] border border-dashed border-border bg-panel px-8 py-16 text-center">
+        <p className="text-lg font-semibold text-ink">No agents registered yet.</p>
+        <p className="mt-2 text-sm leading-6 text-soft">
+          Create a manager or worker record to start demonstrating the registry lifecycle.
+        </p>
       </div>
     )
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-border">
+    <div className="overflow-x-auto rounded-[24px] border border-border bg-panel">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-border bg-panel text-gray-400 text-xs uppercase tracking-wider">
-            <th className="px-4 py-3 text-left">Agent</th>
-            <th className="px-4 py-3 text-left">Owner</th>
-            <th className="px-4 py-3 text-left">Jurisdiction</th>
-            <th className="px-4 py-3 text-left">Capabilities</th>
-            <th className="px-4 py-3 text-left">Status</th>
-            <th className="px-4 py-3 text-left">Actions</th>
+          <tr className="border-b border-border bg-muted text-[11px] uppercase tracking-[0.18em] text-soft">
+            <th className="px-5 py-3.5 text-left font-semibold">Agent</th>
+            <th className="px-5 py-3.5 text-left font-semibold">Owner</th>
+            <th className="px-5 py-3.5 text-left font-semibold">Jurisdiction</th>
+            <th className="px-5 py-3.5 text-left font-semibold">Capabilities</th>
+            <th className="px-5 py-3.5 text-left font-semibold">Status</th>
+            <th className="px-5 py-3.5 text-left font-semibold">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
@@ -47,35 +50,35 @@ export default function AgentTable({ agents, onRefresh }: Props) {
             const expired = isExpired(agent)
 
             return (
-              <tr key={agent.dnaId} className="hover:bg-panel/50 transition-colors">
-                <td className="px-4 py-3">
+              <tr key={agent.dnaId} className="transition-colors hover:bg-slate-50/70">
+                <td className="px-5 py-3.5 align-top">
                   {/* Role badges */}
-                  <div className="flex items-center gap-1.5 mb-0.5">
+                  <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
                     {manager && (
-                      <span className="inline-flex items-center gap-1 bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[10px] font-medium px-1.5 py-0.5 rounded">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-700">
                         <Users size={10} /> Manager
                       </span>
                     )}
                     {worker && (
-                      <span className="inline-flex items-center gap-1 bg-purple-500/10 border border-purple-500/30 text-purple-400 text-[10px] font-medium px-1.5 py-0.5 rounded">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-indigo-700">
                         <GitBranch size={10} /> Worker
                       </span>
                     )}
                     {expired && (
-                      <span className="inline-flex items-center gap-1 bg-orange-500/10 border border-orange-500/30 text-orange-400 text-[10px] font-medium px-1.5 py-0.5 rounded">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700">
                         <Clock size={10} /> Expired
                       </span>
                     )}
                   </div>
 
-                  <div className="font-medium text-white">{agent.agentName}</div>
-                  <div className="text-xs text-gray-500 font-mono mt-0.5">
+                  <div className="font-semibold text-ink">{agent.agentName}</div>
+                  <div className="mt-1 text-xs font-mono text-soft">
                     {agent.dnaId.slice(0, 8)}…
                   </div>
 
                   {/* Parent reference */}
                   {worker && agent.parentDnaId && (
-                    <div className="text-[10px] text-purple-400/70 font-mono mt-0.5 flex items-center gap-1">
+                    <div className="mt-1 flex items-center gap-1 text-[11px] font-mono text-indigo-700/80">
                       <GitBranch size={9} />
                       parent: {agent.parentDnaId.slice(0, 8)}…
                     </div>
@@ -83,36 +86,36 @@ export default function AgentTable({ agents, onRefresh }: Props) {
 
                   {/* TTL indicator */}
                   {agent.expiresAt && (
-                    <div className={`text-[10px] font-mono mt-0.5 flex items-center gap-1 ${expired ? 'text-orange-400' : 'text-gray-500'}`}>
+                    <div className={`mt-1 flex items-center gap-1 text-[11px] font-mono ${expired ? 'text-amber-700' : 'text-soft'}`}>
                       <Clock size={9} />
                       {expired ? 'expired' : 'expires'}: {new Date(agent.expiresAt).toLocaleString()}
                     </div>
                   )}
                 </td>
-                <td className="px-4 py-3 text-gray-300">{agent.ownerName}</td>
-                <td className="px-4 py-3">
-                  <span className="bg-muted/30 border border-border text-gray-300 text-xs px-2 py-0.5 rounded">
+                <td className="px-5 py-3.5 align-top text-sm text-soft">{agent.ownerName}</td>
+                <td className="px-5 py-3.5 align-top">
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-neutral">
                     {agent.jurisdiction}
                   </span>
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-5 py-3.5 align-top">
                   <div className="flex flex-wrap gap-1">
                     {agent.capabilities.map(c => (
-                      <span key={c} className="bg-accent/10 border border-accent/20 text-accent text-xs px-2 py-0.5 rounded-full">
+                      <span key={c} className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-accent">
                         {c}
                       </span>
                     ))}
                   </div>
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-5 py-3.5 align-top">
                   <StatusBadge status={agent.status} />
                   {agent.revokedReason && (
-                    <div className="text-xs text-danger mt-1 max-w-[160px] truncate" title={agent.revokedReason}>
+                    <div className="mt-2 max-w-[200px] text-xs text-danger" title={agent.revokedReason}>
                       {agent.revokedReason}
                     </div>
                   )}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-5 py-3.5 align-top">
                   <div className="flex items-center gap-1.5">
                     <ActionButtons
                       agent={agent}
@@ -144,7 +147,7 @@ function ActionButtons({ agent, busy, onActivate, onSuspend, onReinstate, onRevo
   onActivate: () => void; onSuspend: () => void
   onReinstate: () => void; onRevoke: () => void
 }) {
-  if (busy) return <span className="text-xs text-gray-500 animate-pulse">…</span>
+  if (busy) return <span className="text-xs text-soft animate-pulse">Working…</span>
 
   return (
     <>
@@ -179,7 +182,7 @@ function Btn({ onClick, title, color, children }: {
   return (
     <button
       onClick={onClick} title={title}
-      className={`p-1.5 rounded transition-colors ${color}`}
+      className={`rounded-xl border border-border bg-white p-1.5 transition-colors ${color}`}
     >
       {children}
     </button>

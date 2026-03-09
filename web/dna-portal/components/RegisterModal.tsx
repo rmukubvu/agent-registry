@@ -52,11 +52,17 @@ export default function RegisterModal({ onClose, onSuccess }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-panel border border-border rounded-2xl w-full max-w-md shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <h2 className="text-lg font-semibold text-white">Register Agent</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(21,35,45,0.24)] p-4 backdrop-blur-sm">
+      <div className="w-full max-w-xl rounded-[24px] border border-border bg-panel shadow-[0_22px_60px_rgba(21,35,45,0.16)]">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-soft">New record</p>
+            <h2 className="mt-1 text-xl font-semibold text-ink">Register agent identity</h2>
+            <p className="mt-2 max-w-lg text-sm leading-6 text-soft">
+              Create a persistent manager identity or a delegated worker with an optional expiry.
+            </p>
+          </div>
+          <button onClick={onClose} className="text-soft transition-colors hover:text-ink">
             <X size={20} />
           </button>
         </div>
@@ -70,7 +76,7 @@ export default function RegisterModal({ onClose, onSuccess }: Props) {
             <input value={form.ownerName} onChange={set('ownerName')}
               placeholder="Acme Corp" className={input} />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Jurisdiction">
               <select value={form.jurisdiction} onChange={set('jurisdiction')} className={input}>
                 {['US','GB','ZA','EU','AU','CA','SG','IN'].map(j => (
@@ -89,18 +95,18 @@ export default function RegisterModal({ onClose, onSuccess }: Props) {
           </Field>
 
           {/* ── Hierarchical DNA ──────────────────────────────────────── */}
-          <div className="border-t border-border pt-4 space-y-3">
-            <p className="text-xs text-gray-500 flex items-center gap-1.5">
-              <GitBranch size={12} className="text-purple-400" />
+          <div className="space-y-3 border-t border-border pt-4">
+            <p className="flex items-center gap-1.5 text-xs text-soft">
+              <GitBranch size={12} className="text-indigo-600" />
               Hierarchical DNA — optional
             </p>
             <Field label="Parent DNA ID (UUID — leave blank for manager agent)">
               <input value={form.parentDnaId} onChange={set('parentDnaId')}
                 placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                className={`${input} ${isWorker ? 'border-purple-500/50 focus:border-purple-500' : ''}`} />
+                className={`${input} ${isWorker ? 'border-indigo-300 focus:border-indigo-500' : ''}`} />
             </Field>
             {isWorker && (
-              <p className="text-[10px] text-purple-400 -mt-1 flex items-center gap-1">
+              <p className="-mt-1 flex items-center gap-1 text-[11px] leading-5 text-indigo-700">
                 <GitBranch size={10} />
                 This agent will be registered as a Worker under the specified Manager.
                 The parent must be ACTIVE.
@@ -112,22 +118,22 @@ export default function RegisterModal({ onClose, onSuccess }: Props) {
             </Field>
           </div>
 
-          <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-300">
+          <label className="flex cursor-pointer items-center gap-2 rounded-[18px] border border-border bg-muted px-4 py-3 text-sm text-soft">
             <input type="checkbox" checked={autoActivate}
               onChange={e => setAutoActivate(e.target.checked)}
               className="accent-accent" />
             Auto-activate after registration
           </label>
 
-          {error && <p className="text-danger text-sm">{error}</p>}
+          {error && <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-danger">{error}</p>}
 
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">
+              className="px-4 py-2 text-sm text-soft transition-colors hover:text-ink">
               Cancel
             </button>
             <button type="submit" disabled={busy}
-              className="px-5 py-2 bg-accent hover:bg-accent/80 text-white text-sm rounded-lg transition-colors disabled:opacity-50">
+              className="rounded-2xl border border-accent bg-accent px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#1158c3] disabled:opacity-50">
               {busy ? 'Registering…' : isWorker ? 'Register Worker' : 'Register Manager'}
             </button>
           </div>
@@ -140,10 +146,10 @@ export default function RegisterModal({ onClose, onSuccess }: Props) {
 function Field({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-xs text-gray-400 mb-1">{label}</label>
+      <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-soft">{label}</label>
       {children}
     </div>
   )
 }
 
-const input = 'w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-accent transition-colors'
+const input = 'w-full rounded-2xl border border-border bg-muted px-4 py-3 text-sm text-ink placeholder:text-soft focus:outline-none focus:border-accent focus:bg-panel transition-colors'

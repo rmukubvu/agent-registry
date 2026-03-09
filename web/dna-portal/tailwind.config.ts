@@ -8,15 +8,18 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        surface:  '#0f0f0f',
-        panel:    '#161616',
-        border:   '#222222',
-        muted:    '#3a3a3a',
-        accent:   '#6366f1',        // indigo — trustworthy, tech, security
-        positive: '#22c55e',        // green  — ACTIVE / ALLOWED
-        caution:  '#f59e0b',        // amber  — SUSPENDED
-        danger:   '#ef4444',        // red    — REVOKED / DENIED
-        neutral:  '#6b7280',        // gray   — PENDING
+        surface:    '#f3f6f8',
+        panel:      '#ffffff',
+        border:     '#d6e0e7',
+        muted:      '#edf2f6',
+        ink:        '#15232d',
+        soft:       '#5f6d79',
+        accent:     '#1668e3',
+        accentSoft: '#ebf3ff',
+        positive:   '#15803d',
+        caution:    '#b45309',
+        danger:     '#b42318',
+        neutral:    '#475467',
       },
     },
   },

@@ -1,10 +1,10 @@
 import type { AgentStatus } from '@/lib/api'
 
 const styles: Record<AgentStatus, string> = {
-  ACTIVE:    'bg-positive/10 text-positive  border border-positive/20',
-  PENDING:   'bg-neutral/10  text-neutral   border border-neutral/20',
-  SUSPENDED: 'bg-caution/10  text-caution   border border-caution/20',
-  REVOKED:   'bg-danger/10   text-danger    border border-danger/20',
+  ACTIVE:    'bg-emerald-50 text-positive border border-emerald-200',
+  PENDING:   'bg-slate-100 text-neutral border border-slate-200',
+  SUSPENDED: 'bg-amber-50 text-caution border border-amber-200',
+  REVOKED:   'bg-rose-50 text-danger border border-rose-200',
 }
 
 const dots: Record<AgentStatus, string> = {
@@ -16,7 +16,7 @@ const dots: Record<AgentStatus, string> = {
 
 export default function StatusBadge({ status }: { status: AgentStatus }) {
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${styles[status]}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium tracking-[0.02em] ${styles[status]}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${dots[status]}`} />
       {status}
     </span>
