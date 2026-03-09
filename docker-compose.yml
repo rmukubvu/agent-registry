@@ -18,8 +18,8 @@ services:
   # ── DNA Registry (port 8081) ─────────────────────────────────────────────────
   dna-registry:
     build:
-      context: services/dna-registry
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/dna-registry/Dockerfile
     ports:
       - "8081:8081"
     environment:
@@ -41,8 +41,8 @@ services:
   # ── DNA Enforcer (port 8082) ─────────────────────────────────────────────────
   dna-enforcer:
     build:
-      context: services/dna-enforcer
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/dna-enforcer/Dockerfile
     ports:
       - "8082:8082"
     environment:

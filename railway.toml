@@ -1,0 +1,20 @@
+# ── Railway monorepo config ────────────────────────────────────────────────────
+# This file is read by Railway when no "Root Directory" is set on the service.
+# It forces the Docker builder so Nixpacks is never used.
+#
+# Two Railway services share this repo:
+#   • dna-registry  → dockerfilePath = "services/dna-registry/Dockerfile"  ← DEFAULT
+#   • dna-enforcer  → override dockerfilePath in Railway dashboard settings
+#
+# In Railway dashboard → Service Settings → Source → Dockerfile Path:
+#   dna-registry:  services/dna-registry/Dockerfile
+#   dna-enforcer:  services/dna-enforcer/Dockerfile
+
+[build]
+builder        = "DOCKERFILE"
+dockerfilePath = "services/dna-registry/Dockerfile"
+
+[deploy]
+healthcheckPath    = "/v1/agents"
+healthcheckTimeout = 300
+restartPolicyType  = "ON_FAILURE"
