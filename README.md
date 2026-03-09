@@ -29,7 +29,22 @@ Agent DNA is a **neutral, open registry** that any AI framework can integrate wi
 | Certificate revocation (CRL/OCSP) | DNA revocation — instant global ban |
 | Firewall / WAF | DNA enforcer — blocks unauthorised tool calls |
 
-An agent registers once. Its record carries a cryptographic public key (Ed25519), its owner, jurisdiction, and the specific MCP capabilities it is permitted to use. When the agent attempts a tool call, the enforcer checks the registry in real time. If the record is revoked or suspended, the call is blocked — everywhere, instantly.
+An agent registers once. Its record carries a cryptographic public key (Ed25519), ownership metadata, declared MCP capabilities, and optional delegation metadata for worker agents. When the agent attempts a tool call, the enforcer checks the registry in real time. If the record is expired, suspended, revoked, or blocked by a revoked parent, the call is denied.
+
+## Advanced Architecture: Hierarchical And Delegated Identity
+
+To support multi-agent systems, Agent DNA implements a parent-child delegation model instead of treating every agent as an isolated identity.
+
+### Delegation Model
+
+- **Manager agents** are long-lived top-level records.
+- **Worker agents** can be registered under a parent via `parentDnaId`.
+- **Ephemeral workers** can carry an `expiresAt` TTL and automatically fail verification after expiry.
+- **Cascade revocation** applies downward only: revoking a parent blocks its children, while revoking a child does not affect the parent or sibling workers.
+
+### Proof Of Identity
+
+The registry stores an Ed25519 public key for each agent. The enforcer can verify an optional Ed25519 signature over `{dnaId}:{toolName}` when the client includes a `signature` field. Signature verification is implemented today, but signatures are not yet mandatory on every request.
 
 ---
 
@@ -41,15 +56,15 @@ An agent registers once. Its record carries a cryptographic public key (Ed25519)
   │  (Claude, GPT-4o, Gemini, custom — any framework)       │
   └────────────────────────┬────────────────────────────────┘
                            │  POST /v1/enforce
-                           │  { dnaId, toolName, payload }
+                           │  { dnaId, toolName, payload, signature? }
                            ▼
   ┌─────────────────────────────────────────────────────────┐
   │               dna-enforcer  :8082                       │
   │                                                         │
   │  1. Extract dnaId from request                          │
   │  2. Call dna-registry /v1/agents/{dnaId}/verify         │
-  │  3. If ACTIVE  → allowed: true                          │
-  │     If anything else → allowed: false + reason          │
+  │  3. If authorised, optionally verify Ed25519 signature  │
+  │  4. If denied → return registry reason                  │
   └────────────────────────┬────────────────────────────────┘
                            │  GET /v1/agents/{dnaId}/verify
                            ▼
@@ -57,7 +72,7 @@ An agent registers once. Its record carries a cryptographic public key (Ed25519)
   │              dna-registry  :8081                        │
   │                                                         │
   │  PostgreSQL-backed registry of all agent records        │
-  │  State machine: PENDING → ACTIVE → SUSPENDED → REVOKED  │
+  │  State machine + TTL + parent/child cascade checks      │
   │  Idempotent writes · Optimistic locking · Audit log     │
   └─────────────────────────────────────────────────────────┘
                            ▲
@@ -137,7 +152,9 @@ agent-dna/
 ```json
 {
   "dnaId":        "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "parentDnaId":  null,
   "agentName":    "ClaudeIntakeAgent",
+  "publicKeyHex": "deadbeef...",
   "status":       "ACTIVE",
   "capabilities": ["mcp:filesystem", "mcp:web-search"],
   "isAuthorized": true
@@ -155,7 +172,8 @@ agent-dna/
 {
   "dnaId":       "3fa85f64-5717-4562-b3fc-2c963f66afa6",
   "toolName":    "mcp:filesystem:read",
-  "toolPayload": { "path": "/var/data/report.csv" }
+  "toolPayload": { "path": "/var/data/report.csv" },
+  "signature":   "optional hex-encoded Ed25519 signature over {dnaId}:{toolName}"
 }
 ```
 
@@ -176,7 +194,8 @@ agent-dna/
 ```json
 {
   "dnaId":         "uuid — globally unique, immutable",
-  "agentName":     "ClaudeIntakeAgent",
+  "parentDnaId":   "uuid (nullable — set for delegated worker agents)",
+  "agentName":     "ClaudeWorker-12",
   "publicKeyHex":  "ed25519 public key — agent proves identity",
   "ownerId":       "uuid of the owning organisation",
   "ownerName":     "TurfOS",
@@ -187,6 +206,7 @@ agent-dna/
   "updatedAt":     "2026-03-08T09:01:00Z",
   "revokedAt":     null,
   "revokedReason": null,
+  "expiresAt":     "2026-03-09T00:00:00Z",
   "version":       1
 }
 ```
@@ -255,6 +275,12 @@ JAVA_HOME=.../openjdk-23.0.1/Contents/Home ./gradlew test
 # 57 tests, 0 failures
 ```
 
+### Railway deployment notes
+
+- `dna-registry` binds to `PORT` in production and falls back to `8081` locally.
+- Railway healthchecks target `/q/health/ready`, not `/v1/agents`.
+- The registry API still serves on `:8081` in local Docker Compose and local development.
+
 ---
 
 ## What This Is Trying to Address
@@ -270,7 +296,7 @@ As agents become autonomous and long-running, the attack surface expands:
 
 ### What Agent DNA provides
 1. **Identity** — every agent has a unique, unforgeable record anchored to a public key
-2. **Authorisation scope** — the `capabilities` field limits which MCP tools an agent is allowed to call
+2. **Authorisation intent** — the `capabilities` field records the scope an agent declares; hard enforcement in the enforcer is still roadmap work
 3. **Real-time revocation** — revoking a record blocks that agent at every enforcer in the network, globally, without redeploying anything
 4. **Jurisdiction and ownership** — governments and enterprises can see which agents are operating in their space and who owns them
 5. **Audit trail** — every state transition is timestamped and immutable
@@ -294,7 +320,7 @@ This POC is the working proof of concept to open that conversation with Anthropi
 
 | Layer | Technology |
 |---|---|
-| Services | Java 21, Quarkus 3.17.6, JAX-RS |
+| Services | Java 23 runtime/toolchain, Quarkus 3.17.6, JAX-RS |
 | Persistence | PostgreSQL via Quarkus Dev Services, jOOQ 3.19.6, Flyway |
 | Patterns | CQRS command handlers, idempotency keys, optimistic locking, outbox |
 | Portal | Next.js 15, React 19, Tailwind CSS, TypeScript |
@@ -305,7 +331,7 @@ This POC is the working proof of concept to open that conversation with Anthropi
 
 ## Roadmap (beyond this POC)
 
-- **Ed25519 signature verification** — agents sign requests; enforcer verifies the signature matches the registered public key
+- **Mandatory signature enforcement** — reject unsigned tool calls instead of verifying signatures only when provided
 - **Capability enforcement** — enforcer checks requested tool against the agent's declared `capabilities` list
 - **Federated registries** — multiple org-level registries with cross-registry trust (like DNS zones)
 - **Event streaming** — revocation events published to Kafka so enforcers update in near-real-time without polling
