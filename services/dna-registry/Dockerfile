@@ -34,6 +34,5 @@ COPY --from=build /app/services/dna-registry/build/quarkus-app/app/     app/
 COPY --from=build /app/services/dna-registry/build/quarkus-app/quarkus/ quarkus/
 
 EXPOSE 8081
-ENV QUARKUS_HTTP_PORT=8081
 
 CMD ["java", "-jar", "quarkus-run.jar"]
