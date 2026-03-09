@@ -35,6 +35,7 @@ dependencies {
     // Quarkus BOM + extensions
     implementation enforcedPlatform("io.quarkus.platform:quarkus-bom:${quarkusVersion}")
     implementation 'io.quarkus:quarkus-rest-jackson'
+    implementation 'io.quarkus:quarkus-smallrye-health'
     implementation 'io.quarkus:quarkus-arc'
 
     // Jackson
