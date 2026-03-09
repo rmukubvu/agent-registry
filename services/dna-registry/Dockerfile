@@ -32,4 +32,4 @@ COPY --from=build /app/build/quarkus-app/quarkus/ quarkus/
 
 EXPOSE 8081
 
-CMD ["java", "-jar", "quarkus-run.jar"]
+CMD ["sh", "-c", "java -Dquarkus.http.port=${PORT:-8081} -jar quarkus-run.jar"]

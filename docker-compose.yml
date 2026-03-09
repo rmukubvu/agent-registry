@@ -18,8 +18,8 @@ services:
   # ── DNA Registry (port 8081) ─────────────────────────────────────────────────
   dna-registry:
     build:
-      context: .
-      dockerfile: services/dna-registry/Dockerfile
+      context: services/dna-registry
+      dockerfile: Dockerfile
     ports:
       - "8081:8081"
     environment:
@@ -32,7 +32,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/v1/agents || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/q/health/ready || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -41,8 +41,8 @@ services:
   # ── DNA Enforcer (port 8082) ─────────────────────────────────────────────────
   dna-enforcer:
     build:
-      context: .
-      dockerfile: services/dna-enforcer/Dockerfile
+      context: services/dna-enforcer
+      dockerfile: Dockerfile
     ports:
       - "8082:8082"
     environment:
@@ -59,8 +59,6 @@ services:
       context: web/dna-portal
       dockerfile: Dockerfile
       args:
-        # NEXT_PUBLIC_* vars are baked into the JS bundle at build time.
-        # In production (Vercel), set these in the Vercel dashboard instead.
         NEXT_PUBLIC_REGISTRY_URL: http://localhost:8081
         NEXT_PUBLIC_ENFORCER_URL: http://localhost:8082
     ports:
