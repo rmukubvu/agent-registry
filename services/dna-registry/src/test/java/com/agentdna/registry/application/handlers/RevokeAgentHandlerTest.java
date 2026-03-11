@@ -87,10 +87,11 @@ class RevokeAgentHandlerTest {
     void handle_revokeParent_cascadesToChildren() {
         var now   = Instant.now();
         var child = new AgentRecord(
-                CHILD_ID, PARENT_ID, "ChildWorker", "deadbeef",
+                CHILD_ID, PARENT_ID, "ChildWorker", "deadbeef", "svc://child-worker", "build://fixture/child",
                 AgentFixtures.OWNER_ID, "TurfOS", "ZA",
                 List.of("mcp:filesystem"), AgentStatus.ACTIVE,
-                now, now, null, null, null, 1);
+                now, now, now.minusSeconds(10), "GovTeam", "Fixture approval",
+                null, null, null, 1);
 
         when(repository.findById(PARENT_ID)).thenReturn(AgentFixtures.active());
         when(repository.findByParentDnaId(PARENT_ID)).thenReturn(List.of(child));
@@ -107,10 +108,11 @@ class RevokeAgentHandlerTest {
     void handle_revokeParent_alreadyRevokedChild_skipped() {
         var now          = Instant.now();
         var revokedChild = new AgentRecord(
-                CHILD_ID, PARENT_ID, "ChildWorker", "deadbeef",
+                CHILD_ID, PARENT_ID, "ChildWorker", "deadbeef", "svc://child-worker", "build://fixture/child",
                 AgentFixtures.OWNER_ID, "TurfOS", "ZA",
                 List.of("mcp:filesystem"), AgentStatus.REVOKED,
-                now, now, now, "Already gone", null, 2);
+                now, now, now.minusSeconds(10), "GovTeam", "Fixture approval",
+                now, "Already gone", null, 2);
 
         when(repository.findById(PARENT_ID)).thenReturn(AgentFixtures.active());
         when(repository.findByParentDnaId(PARENT_ID)).thenReturn(List.of(revokedChild));

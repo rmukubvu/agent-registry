@@ -9,6 +9,8 @@ public record AgentRecord(
         UUID           parentDnaId,   // nullable — links a worker agent to its manager
         String         agentName,
         String         publicKeyHex,
+        String         workloadIdentity, // nullable — binds the record to a workload or service principal
+        String         provenanceRef,    // nullable — build/release/provenance reference for governance review
         UUID           ownerId,
         String         ownerName,
         String         jurisdiction,
@@ -16,6 +18,9 @@ public record AgentRecord(
         AgentStatus    status,
         Instant        createdAt,
         Instant        updatedAt,
+        Instant        approvedAt,
+        String         approvedBy,
+        String         approvalReason,
         Instant        revokedAt,
         String         revokedReason,
         Instant        expiresAt,     // nullable — TTL for ephemeral worker agents

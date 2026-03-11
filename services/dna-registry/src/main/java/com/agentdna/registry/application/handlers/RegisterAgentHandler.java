@@ -41,6 +41,8 @@ public class RegisterAgentHandler {
     }
 
     private RegisterAgentResult executeRegister(RegisterAgentCommand cmd) {
+        validateGovernanceAnchors(cmd);
+
         if (cmd.parentDnaId() != null) {
             validateParentIsActive(cmd.parentDnaId());
         }
@@ -49,10 +51,10 @@ public class RegisterAgentHandler {
         var dnaId = UUID.randomUUID();
         var record = new AgentRecord(
                 dnaId, cmd.parentDnaId(),
-                cmd.agentName(), cmd.publicKeyHex(),
+                cmd.agentName(), cmd.publicKeyHex(), cmd.workloadIdentity(), cmd.provenanceRef(),
                 cmd.ownerId(), cmd.ownerName(), cmd.jurisdiction(),
                 cmd.capabilities(), AgentStatus.PENDING,
-                now, now, null, null, cmd.expiresAt(), 1);
+                now, now, null, null, null, null, null, cmd.expiresAt(), 1);
 
         repository.save(record);
         outbox.publish("AGENT_REGISTERED", dnaId, record);
@@ -68,6 +70,13 @@ public class RegisterAgentHandler {
         if (parent.status() != AgentStatus.ACTIVE) {
             throw new IllegalStateException(
                     "Parent agent " + parentDnaId + " is not ACTIVE — cannot sponsor a worker");
+        }
+    }
+
+    private void validateGovernanceAnchors(RegisterAgentCommand cmd) {
+        if (repository.existsRevokedPublicKeyHex(cmd.publicKeyHex())) {
+            throw new IllegalStateException(
+                    "Public key has revoked lineage and cannot be re-registered: " + cmd.publicKeyHex());
         }
     }
 }

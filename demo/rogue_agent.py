@@ -52,7 +52,9 @@ def main() -> None:
     owner_id = str(uuid.uuid4())
     r = requests.post(f"{REGISTRY}/v1/agents", json={
         "agentName":    "RogueAgent-Pending",
-        "publicKeyHex": "cafebabe" * 8,
+        "publicKeyHex": uuid.uuid4().hex + uuid.uuid4().hex,
+        "workloadIdentity": "svc://demo/rogue-pending",
+        "provenanceRef": "build://demo/rogue-pending",
         "ownerId":      owner_id,
         "ownerName":    "Dark Corp",
         "jurisdiction": "XX",
@@ -75,7 +77,9 @@ def main() -> None:
     banner("Scenario C: Agent is active, gets suspended, tool call blocked")
     r = requests.post(f"{REGISTRY}/v1/agents", json={
         "agentName":    "RogueAgent-Suspended",
-        "publicKeyHex": "deadc0de" * 8,
+        "publicKeyHex": uuid.uuid4().hex + uuid.uuid4().hex,
+        "workloadIdentity": "svc://demo/rogue-suspended",
+        "provenanceRef": "build://demo/rogue-suspended",
         "ownerId":      str(uuid.uuid4()),
         "ownerName":    "Shadow AI",
         "jurisdiction": "RU",
@@ -83,7 +87,11 @@ def main() -> None:
         "idemKey":      f"rogue-sus-reg-{uuid.uuid4()}",
     })
     sus_id = r.json()["dnaId"]
-    requests.put(f"{REGISTRY}/v1/agents/{sus_id}/activate?idemKey=rogue-sus-act-{uuid.uuid4()}")
+    requests.put(f"{REGISTRY}/v1/agents/{sus_id}/activate", json={
+        "idemKey": f"rogue-sus-act-{uuid.uuid4()}",
+        "approvedBy": "Demo Governance Team",
+        "approvalReason": "Approve suspended-path setup for demo",
+    })
     info(f"Agent activated (dnaId={sus_id})")
     requests.put(f"{REGISTRY}/v1/agents/{sus_id}/suspend",
                  json={"reason": "Suspicious exfiltration attempt",

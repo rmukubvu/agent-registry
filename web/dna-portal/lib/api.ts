@@ -7,6 +7,8 @@ export interface Agent {
   dnaId:          string
   parentDnaId?:   string        // null for manager agents
   agentName:      string
+  workloadIdentity?: string
+  provenanceRef?: string
   ownerName:      string
   ownerId:        string
   jurisdiction:   string
@@ -14,6 +16,9 @@ export interface Agent {
   status:         AgentStatus
   createdAt:      string
   updatedAt:      string
+  approvedAt?:    string
+  approvedBy?:    string
+  approvalReason?: string
   revokedAt?:     string
   revokedReason?: string
   expiresAt?:     string        // TTL for ephemeral worker agents
@@ -49,6 +54,7 @@ export async function listAgents(): Promise<Agent[]> {
 
 export async function registerAgent(payload: {
   agentName: string; publicKeyHex: string; ownerId: string
+  workloadIdentity?: string | null; provenanceRef?: string | null
   ownerName: string; jurisdiction: string; capabilities: string[]
   parentDnaId?: string | null; expiresAt?: string | null; idemKey: string
 }): Promise<{ dnaId: string; agentName: string; status: AgentStatus }> {
@@ -62,28 +68,39 @@ export async function registerAgent(payload: {
 
 export async function activateAgent(dnaId: string): Promise<void> {
   const key = `activate-${dnaId}-${Date.now()}`
-  await fetch(`${REGISTRY}/v1/agents/${dnaId}/activate?idemKey=${key}`, { method: 'PUT' })
+  const r = await fetch(`${REGISTRY}/v1/agents/${dnaId}/activate`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      idemKey: key,
+      approvedBy: 'Portal Governance Console',
+      approvalReason: 'Manual activation from the Agent DNA portal',
+    }),
+  })
+  if (!r.ok) throw new Error(await r.text())
 }
 
 export async function suspendAgent(dnaId: string, reason: string): Promise<void> {
   const key = `suspend-${dnaId}-${Date.now()}`
-  await fetch(`${REGISTRY}/v1/agents/${dnaId}/suspend`, {
+  const r = await fetch(`${REGISTRY}/v1/agents/${dnaId}/suspend`, {
     method: 'PUT', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ reason, idemKey: key }),
   })
+  if (!r.ok) throw new Error(await r.text())
 }
 
 export async function reinstateAgent(dnaId: string): Promise<void> {
   const key = `reinstate-${dnaId}-${Date.now()}`
-  await fetch(`${REGISTRY}/v1/agents/${dnaId}/reinstate?idemKey=${key}`, { method: 'PUT' })
+  const r = await fetch(`${REGISTRY}/v1/agents/${dnaId}/reinstate?idemKey=${key}`, { method: 'PUT' })
+  if (!r.ok) throw new Error(await r.text())
 }
 
 export async function revokeAgent(dnaId: string, reason: string): Promise<void> {
   const key = `revoke-${dnaId}-${Date.now()}`
-  await fetch(`${REGISTRY}/v1/agents/${dnaId}/revoke`, {
+  const r = await fetch(`${REGISTRY}/v1/agents/${dnaId}/revoke`, {
     method: 'PUT', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ reason, idemKey: key }),
   })
+  if (!r.ok) throw new Error(await r.text())
 }
 
 export async function verifyAgent(dnaId: string): Promise<VerifyResult> {

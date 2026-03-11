@@ -31,10 +31,11 @@ public final class AgentFixtures {
     public static AgentRecord revoked() {
         var now = Instant.now();
         return new AgentRecord(
-                DNA_ID, null, "TestAgent", "deadbeef",
+                DNA_ID, null, "TestAgent", "deadbeef", "svc://test-agent", "build://fixture/revoked",
                 OWNER_ID, "TurfOS", "ZA",
                 List.of("mcp:filesystem"), AgentStatus.REVOKED,
-                now, now, now, "Misbehaving", null, 2);
+                now, now, now.minusSeconds(60), "GovTeam", "Fixture approval",
+                now, "Misbehaving", null, 2);
     }
 
     /** Active worker — linked to PARENT_ID, no expiry. */
@@ -51,20 +52,22 @@ public final class AgentFixtures {
     public static AgentRecord activeParent() {
         var now = Instant.now();
         return new AgentRecord(
-                PARENT_ID, null, "ParentManager", "cafebabe",
+                PARENT_ID, null, "ParentManager", "cafebabe", "svc://parent-manager", "build://fixture/parent-active",
                 OWNER_ID, "TurfOS", "ZA",
                 List.of("mcp:filesystem"), AgentStatus.ACTIVE,
-                now, now, null, null, null, 1);
+                now, now, now.minusSeconds(30), "GovTeam", "Fixture approval",
+                null, null, null, 1);
     }
 
     /** Revoked manager — triggers cascade deny for its workers. */
     public static AgentRecord revokedParent() {
         var now = Instant.now();
         return new AgentRecord(
-                PARENT_ID, null, "ParentManager", "cafebabe",
+                PARENT_ID, null, "ParentManager", "cafebabe", "svc://parent-manager", "build://fixture/parent-revoked",
                 OWNER_ID, "TurfOS", "ZA",
                 List.of("mcp:filesystem"), AgentStatus.REVOKED,
-                now, now, now, "Compromised", null, 2);
+                now, now, now.minusSeconds(120), "GovTeam", "Fixture approval",
+                now, "Compromised", null, 2);
     }
 
     // ── internal factory ─────────────────────────────────────────────────────
@@ -72,9 +75,13 @@ public final class AgentFixtures {
     private static AgentRecord agentWith(AgentStatus status, UUID parentDnaId, Instant expiresAt) {
         var now = Instant.now();
         return new AgentRecord(
-                DNA_ID, parentDnaId, "TestAgent", "deadbeef",
+                DNA_ID, parentDnaId, "TestAgent", "deadbeef", "svc://test-agent", "build://fixture/default",
                 OWNER_ID, "TurfOS", "ZA",
                 List.of("mcp:filesystem"), status,
-                now, now, null, null, expiresAt, 1);
+                now, now,
+                status == AgentStatus.PENDING ? null : now.minusSeconds(15),
+                status == AgentStatus.PENDING ? null : "GovTeam",
+                status == AgentStatus.PENDING ? null : "Fixture approval",
+                null, null, expiresAt, 1);
     }
 }

@@ -174,6 +174,8 @@ export default function AgentDrawer({ agent, allAgents, onClose, onRefresh, onVe
             <div className="divide-y divide-border rounded-[14px] border border-border overflow-hidden">
               <Row label="Owner" value={agent.ownerName} />
               <Row label="Owner ID" value={agent.ownerId} mono />
+              {agent.workloadIdentity && <Row label="Workload" value={agent.workloadIdentity} mono />}
+              {agent.provenanceRef && <Row label="Provenance" value={agent.provenanceRef} />}
               <Row label="Jurisdiction">
                 <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-[0.12em] text-neutral">
                   {agent.jurisdiction}
@@ -181,6 +183,15 @@ export default function AgentDrawer({ agent, allAgents, onClose, onRefresh, onVe
               </Row>
               <Row label="Created" value={new Date(agent.createdAt).toLocaleString()} />
               <Row label="Updated" value={new Date(agent.updatedAt).toLocaleString()} />
+              {agent.approvedBy && (
+                <Row label="Approved by" value={agent.approvedBy} />
+              )}
+              {agent.approvedAt && (
+                <Row label="Approved at" value={new Date(agent.approvedAt).toLocaleString()} />
+              )}
+              {agent.approvalReason && (
+                <Row label="Approval reason" value={agent.approvalReason} />
+              )}
               {agent.revokedAt && (
                 <Row label="Revoked at" value={new Date(agent.revokedAt).toLocaleString()} />
               )}

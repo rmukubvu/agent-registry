@@ -14,10 +14,14 @@ public interface AgentRepository {
 
     List<AgentRecord> findAll();
 
+    boolean existsRevokedPublicKeyHex(String publicKeyHex);
+
     /** Returns all agents whose parentDnaId matches — used for cascade revocation. */
     List<AgentRecord> findByParentDnaId(UUID parentDnaId);
 
     void updateStatus(UUID dnaId, AgentStatus from, AgentStatus to, int expectedVersion);
+
+    void approveActivation(UUID dnaId, int expectedVersion, String approvedBy, String approvalReason);
 
     void revoke(UUID dnaId, AgentStatus from, String reason, int expectedVersion);
 }

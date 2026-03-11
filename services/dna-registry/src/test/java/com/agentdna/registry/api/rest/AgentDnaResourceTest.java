@@ -58,7 +58,7 @@ class AgentDnaResourceTest {
 
         // parentDnaId=null, expiresAt=null for a standard top-level agent
         var payload = new RegisterAgentPayload(
-                "ClaudeAgent", "deadbeef",
+                "ClaudeAgent", "deadbeef", "svc://claude-agent", "build://claude-agent/1",
                 AgentFixtures.OWNER_ID, "TurfOS", "ZA",
                 List.of("mcp:filesystem"), null, null, "idem-001");
 
@@ -124,7 +124,8 @@ class AgentDnaResourceTest {
         var result = new AgentTransitionResult(AgentFixtures.DNA_ID, AgentStatus.PENDING, AgentStatus.ACTIVE);
         when(activateHandler.handle(any(ActivateAgentCommand.class))).thenReturn(result);
 
-        assertThat(resource.activate(AgentFixtures.DNA_ID, "idem-act").getStatus()).isEqualTo(200);
+        var payload = new ActivateAgentPayload("idem-act", "GovTeam", "Manual governance approval");
+        assertThat(resource.activate(AgentFixtures.DNA_ID, null, null, null, payload).getStatus()).isEqualTo(200);
     }
 
     @Test
@@ -132,7 +133,8 @@ class AgentDnaResourceTest {
         when(activateHandler.handle(any(ActivateAgentCommand.class)))
                 .thenThrow(new AgentStateTransitionException(AgentStatus.REVOKED, AgentStatus.ACTIVE));
 
-        assertThat(resource.activate(AgentFixtures.DNA_ID, "idem-act-bad").getStatus()).isEqualTo(422);
+        var payload = new ActivateAgentPayload("idem-act-bad", "GovTeam", "Manual governance approval");
+        assertThat(resource.activate(AgentFixtures.DNA_ID, null, null, null, payload).getStatus()).isEqualTo(422);
     }
 
     @Test
@@ -140,7 +142,17 @@ class AgentDnaResourceTest {
         when(activateHandler.handle(any(ActivateAgentCommand.class)))
                 .thenThrow(new NoSuchElementException("Agent not found"));
 
-        assertThat(resource.activate(UUID.randomUUID(), "idem-act-404").getStatus()).isEqualTo(404);
+        var payload = new ActivateAgentPayload("idem-act-404", "GovTeam", "Manual governance approval");
+        assertThat(resource.activate(UUID.randomUUID(), null, null, null, payload).getStatus()).isEqualTo(404);
+    }
+
+    @Test
+    void activate_missingGovernanceMetadata_returns400() {
+        when(activateHandler.handle(any(ActivateAgentCommand.class)))
+                .thenThrow(new IllegalArgumentException("approvedBy is required for activation"));
+
+        var payload = new ActivateAgentPayload("idem-act-400", "", "Manual governance approval");
+        assertThat(resource.activate(AgentFixtures.DNA_ID, null, null, null, payload).getStatus()).isEqualTo(400);
     }
 
     // -- PUT /v1/agents/{dnaId}/revoke --

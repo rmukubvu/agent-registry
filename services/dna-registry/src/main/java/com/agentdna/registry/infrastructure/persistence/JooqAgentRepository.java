@@ -42,6 +42,8 @@ public class JooqAgentRepository implements AgentRepository {
                 .set(field("parent_dna_id"),   r.parentDnaId())
                 .set(field("agent_name"),      r.agentName())
                 .set(field("public_key_hex"),  r.publicKeyHex())
+                .set(field("workload_identity"), r.workloadIdentity())
+                .set(field("provenance_ref"),    r.provenanceRef())
                 .set(field("owner_id"),        r.ownerId())
                 .set(field("owner_name"),      r.ownerName())
                 .set(field("jurisdiction"),    r.jurisdiction())
@@ -49,6 +51,9 @@ public class JooqAgentRepository implements AgentRepository {
                 .set(field("status"),          r.status().name())
                 .set(field("created_at"),      odt(r.createdAt()))
                 .set(field("updated_at"),      odt(r.updatedAt()))
+                .set(field("approved_at"),     odt(r.approvedAt()))
+                .set(field("approved_by"),     r.approvedBy())
+                .set(field("approval_reason"), r.approvalReason())
                 .set(field("expires_at"),      odt(r.expiresAt()))
                 .set(field("version"),         r.version())
                 .execute();
@@ -75,6 +80,16 @@ public class JooqAgentRepository implements AgentRepository {
     }
 
     @Override
+    public boolean existsRevokedPublicKeyHex(String publicKeyHex) {
+        return dsl.fetchExists(
+                dsl.selectOne()
+                        .from(table(TABLE))
+                        .where(field("public_key_hex").eq(publicKeyHex))
+                        .and(field("status").eq(AgentStatus.REVOKED.name()))
+        );
+    }
+
+    @Override
     public List<AgentRecord> findByParentDnaId(UUID parentDnaId) {
         return dsl.selectFrom(table(TABLE))
                 .where(field("parent_dna_id").eq(parentDnaId))
@@ -88,6 +103,24 @@ public class JooqAgentRepository implements AgentRepository {
                 .set(field("status"),     to.name())
                 .set(field("updated_at"), odt(Instant.now()))
                 .set(field("version"),    expectedVersion + 1)
+                .where(field("dna_id").eq(dnaId))
+                .and(field("version").eq(expectedVersion))
+                .execute();
+        if (rows == 0) {
+            throw new OptimisticLockException(dnaId, expectedVersion);
+        }
+    }
+
+    @Override
+    public void approveActivation(UUID dnaId, int expectedVersion, String approvedBy, String approvalReason) {
+        var now  = odt(Instant.now());
+        int rows = dsl.update(table(TABLE))
+                .set(field("status"),          AgentStatus.ACTIVE.name())
+                .set(field("approved_at"),     now)
+                .set(field("approved_by"),     approvedBy)
+                .set(field("approval_reason"), approvalReason)
+                .set(field("updated_at"),      now)
+                .set(field("version"),         expectedVersion + 1)
                 .where(field("dna_id").eq(dnaId))
                 .and(field("version").eq(expectedVersion))
                 .execute();
@@ -121,6 +154,8 @@ public class JooqAgentRepository implements AgentRepository {
                 rec.get(field("parent_dna_id"),  UUID.class),
                 rec.get(field("agent_name"),      String.class),
                 rec.get(field("public_key_hex"),  String.class),
+                rec.get(field("workload_identity"), String.class),
+                rec.get(field("provenance_ref"),    String.class),
                 rec.get(field("owner_id"),        UUID.class),
                 rec.get(field("owner_name"),      String.class),
                 rec.get(field("jurisdiction"),    String.class),
@@ -128,6 +163,9 @@ public class JooqAgentRepository implements AgentRepository {
                 AgentStatus.valueOf(rec.get(field("status"), String.class)),
                 toInstant(rec.get(field("created_at"),  OffsetDateTime.class)),
                 toInstant(rec.get(field("updated_at"),  OffsetDateTime.class)),
+                toInstant(rec.get(field("approved_at"), OffsetDateTime.class)),
+                rec.get(field("approved_by"),     String.class),
+                rec.get(field("approval_reason"), String.class),
                 toInstant(rec.get(field("revoked_at"),  OffsetDateTime.class)),
                 rec.get(field("revoked_reason"),  String.class),
                 toInstant(rec.get(field("expires_at"),  OffsetDateTime.class)),

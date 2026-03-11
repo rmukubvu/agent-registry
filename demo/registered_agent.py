@@ -37,12 +37,15 @@ def info(text: str) -> None:
 def main() -> None:
     owner_id = str(uuid.uuid4())
     idem_reg = f"demo-register-{uuid.uuid4()}"
+    public_key = uuid.uuid4().hex + uuid.uuid4().hex
 
     # ── Step 1: Register ──────────────────────────────────────────────────────
     banner("Step 1: Register agent with DNA registry")
     payload = {
         "agentName":    "ClaudeIntakeAgent",
-        "publicKeyHex": "deadbeef" * 8,          # Ed25519 hex placeholder
+        "publicKeyHex": public_key,
+        "workloadIdentity": "svc://demo/claude-intake-agent",
+        "provenanceRef": "build://demo/registered-agent",
         "ownerId":      owner_id,
         "ownerName":    "TurfOS Demo",
         "jurisdiction": "ZA",
@@ -62,7 +65,11 @@ def main() -> None:
     # ── Step 2: Activate ──────────────────────────────────────────────────────
     banner("Step 2: Activate the agent")
     idem_act = f"demo-activate-{uuid.uuid4()}"
-    r = requests.put(f"{REGISTRY}/v1/agents/{dna_id}/activate?idemKey={idem_act}")
+    r = requests.put(f"{REGISTRY}/v1/agents/{dna_id}/activate", json={
+        "idemKey": idem_act,
+        "approvedBy": "Demo Governance Team",
+        "approvalReason": "Presentation approval for registered-agent flow",
+    })
     if r.status_code != 200:
         fail(f"Activation failed: {r.status_code} {r.text}")
         sys.exit(1)

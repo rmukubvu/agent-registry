@@ -94,18 +94,27 @@ class RegisterAgentHandlerTest {
                 .hasMessageContaining("not ACTIVE");
     }
 
+    @Test
+    void handle_withRevokedPublicKey_throwsIllegalStateException() {
+        when(repository.existsRevokedPublicKeyHex("deadbeef0123")).thenReturn(true);
+
+        assertThatThrownBy(() -> handler.handle(registerCommand()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("revoked lineage");
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────────
 
     private RegisterAgentCommand registerCommand() {
         return new RegisterAgentCommand(
-                "ClaudeAgent", "deadbeef0123",
+                "ClaudeAgent", "deadbeef0123", "svc://claude-agent", "build://claude-agent/1",
                 UUID.randomUUID(), "TurfOS", "ZA",
                 List.of("mcp:filesystem"), null, null, "idem-001");
     }
 
     private RegisterAgentCommand workerCommand(UUID parentDnaId) {
         return new RegisterAgentCommand(
-                "ClaudeWorker", "deadbeef0123",
+                "ClaudeWorker", "deadbeef0123", "svc://claude-worker", "build://claude-worker/1",
                 UUID.randomUUID(), "TurfOS", "ZA",
                 List.of("mcp:filesystem"), parentDnaId, null, "idem-worker-001");
     }

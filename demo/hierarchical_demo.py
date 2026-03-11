@@ -78,7 +78,9 @@ def register(agent_name: str, owner_id: str, parent_dna_id: str | None = None,
     """Register an agent and return its dnaId."""
     payload = {
         "agentName":    agent_name,
-        "publicKeyHex": "deadbeef" * 8,
+        "publicKeyHex": uuid.uuid4().hex + uuid.uuid4().hex,
+        "workloadIdentity": f"svc://hier/{agent_name.lower()}",
+        "provenanceRef": f"build://hier/{agent_name.lower()}",
         "ownerId":      owner_id,
         "ownerName":    "Hierarchical Demo",
         "jurisdiction": "ZA",
@@ -103,7 +105,11 @@ def register(agent_name: str, owner_id: str, parent_dna_id: str | None = None,
 
 
 def activate(dna_id: str, label: str) -> None:
-    r = requests.put(f"{REGISTRY}/v1/agents/{dna_id}/activate?idemKey=hier-act-{uuid.uuid4()}")
+    r = requests.put(f"{REGISTRY}/v1/agents/{dna_id}/activate", json={
+        "idemKey": f"hier-act-{uuid.uuid4()}",
+        "approvedBy": "Demo Governance Team",
+        "approvalReason": f"Approve {label} for hierarchical demo",
+    })
     if r.status_code != 200:
         fail(f"Activation of {label} failed: {r.status_code} {r.text}")
     data = r.json()

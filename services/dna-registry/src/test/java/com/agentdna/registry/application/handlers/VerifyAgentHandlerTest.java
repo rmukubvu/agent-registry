@@ -113,8 +113,11 @@ class VerifyAgentHandlerTest {
         var ref = AgentFixtures.activeParent();
         return new AgentRecord(
                 AgentFixtures.PARENT_ID, null, "ParentManager", "cafebabe",
+                "svc://parent-manager", "build://fixture/parent-suspended",
                 AgentFixtures.OWNER_ID, "TurfOS", "ZA",
                 List.of("mcp:filesystem"), AgentStatus.SUSPENDED,
-                ref.createdAt(), ref.updatedAt(), null, null, null, 1);
+                ref.createdAt(), ref.updatedAt(),
+                ref.approvedAt(), ref.approvedBy(), ref.approvalReason(),
+                null, null, null, 1);
     }
 }

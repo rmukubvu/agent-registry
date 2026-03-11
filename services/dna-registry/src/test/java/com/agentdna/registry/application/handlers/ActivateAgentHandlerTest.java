@@ -37,7 +37,8 @@ class ActivateAgentHandlerTest {
     void handle_pendingToActive_succeeds() {
         when(repository.findById(AgentFixtures.DNA_ID)).thenReturn(AgentFixtures.pending());
 
-        var result = handler.handle(new ActivateAgentCommand(AgentFixtures.DNA_ID, "idem-act-1"));
+        var result = handler.handle(new ActivateAgentCommand(
+                AgentFixtures.DNA_ID, "idem-act-1", "GovTeam", "Risk review completed"));
 
         assertThat(result.previousStatus()).isEqualTo(AgentStatus.PENDING);
         assertThat(result.newStatus()).isEqualTo(AgentStatus.ACTIVE);
@@ -47,10 +48,11 @@ class ActivateAgentHandlerTest {
     void handle_pendingToActive_callsUpdateStatus() {
         when(repository.findById(AgentFixtures.DNA_ID)).thenReturn(AgentFixtures.pending());
 
-        handler.handle(new ActivateAgentCommand(AgentFixtures.DNA_ID, "idem-act-2"));
+        handler.handle(new ActivateAgentCommand(
+                AgentFixtures.DNA_ID, "idem-act-2", "GovTeam", "Risk review completed"));
 
-        verify(repository).updateStatus(
-                AgentFixtures.DNA_ID, AgentStatus.PENDING, AgentStatus.ACTIVE, 1);
+        verify(repository).approveActivation(
+                AgentFixtures.DNA_ID, 1, "GovTeam", "Risk review completed");
     }
 
     @Test
@@ -58,7 +60,8 @@ class ActivateAgentHandlerTest {
         when(repository.findById(AgentFixtures.DNA_ID)).thenReturn(AgentFixtures.active());
 
         assertThatThrownBy(() ->
-                handler.handle(new ActivateAgentCommand(AgentFixtures.DNA_ID, "idem-act-3")))
+                handler.handle(new ActivateAgentCommand(
+                        AgentFixtures.DNA_ID, "idem-act-3", "GovTeam", "Risk review completed")))
                 .isInstanceOf(AgentStateTransitionException.class);
     }
 
@@ -67,7 +70,16 @@ class ActivateAgentHandlerTest {
         when(repository.findById(AgentFixtures.DNA_ID)).thenReturn(AgentFixtures.revoked());
 
         assertThatThrownBy(() ->
-                handler.handle(new ActivateAgentCommand(AgentFixtures.DNA_ID, "idem-act-4")))
+                handler.handle(new ActivateAgentCommand(
+                        AgentFixtures.DNA_ID, "idem-act-4", "GovTeam", "Risk review completed")))
                 .isInstanceOf(AgentStateTransitionException.class);
+    }
+
+    @Test
+    void handle_missingApprovalMetadata_throwsIllegalArgumentException() {
+        assertThatThrownBy(() ->
+                handler.handle(new ActivateAgentCommand(AgentFixtures.DNA_ID, "idem-act-5", "", "")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("approvedBy");
     }
 }

@@ -7,6 +7,8 @@ import java.util.UUID;
 public record RegisterAgentPayload(
         String       agentName,
         String       publicKeyHex,
+        String       workloadIdentity,
+        String       provenanceRef,
         UUID         ownerId,
         String       ownerName,
         String       jurisdiction,

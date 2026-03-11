@@ -44,14 +44,21 @@ public class AgentDnaResource {
 
     @POST
     public Response register(RegisterAgentPayload payload) {
-        var cmd = new RegisterAgentCommand(
-                payload.agentName(), payload.publicKeyHex(),
-                payload.ownerId(),   payload.ownerName(),
-                payload.jurisdiction(), payload.capabilities(),
-                payload.parentDnaId(), payload.expiresAt(),
-                payload.idemKey());
-        var result = registerHandler.handle(cmd);
-        return Response.status(Response.Status.CREATED).entity(result).build();
+        try {
+            var cmd = new RegisterAgentCommand(
+                    payload.agentName(), payload.publicKeyHex(),
+                    payload.workloadIdentity(), payload.provenanceRef(),
+                    payload.ownerId(), payload.ownerName(),
+                    payload.jurisdiction(), payload.capabilities(),
+                    payload.parentDnaId(), payload.expiresAt(),
+                    payload.idemKey());
+            var result = registerHandler.handle(cmd);
+            return Response.status(Response.Status.CREATED).entity(result).build();
+        } catch (IllegalStateException e) {
+            return unprocessable(e);
+        } catch (IllegalArgumentException e) {
+            return badRequest(e);
+        }
     }
 
     @GET
@@ -62,12 +69,23 @@ public class AgentDnaResource {
     @PUT
     @Path("/{dnaId}/activate")
     public Response activate(@PathParam("dnaId") UUID dnaId,
-                             @QueryParam("idemKey") String idemKey) {
+                             @QueryParam("idemKey") String idemKey,
+                             @QueryParam("approvedBy") String approvedBy,
+                             @QueryParam("approvalReason") String approvalReason,
+                             ActivateAgentPayload payload) {
         try {
-            var result = activateHandler.handle(new ActivateAgentCommand(dnaId, idemKey));
+            var body = payload == null ? new ActivateAgentPayload(null, null, null) : payload;
+            var result = activateHandler.handle(new ActivateAgentCommand(
+                    dnaId,
+                    firstNonBlank(body.idemKey(), idemKey),
+                    firstNonBlank(body.approvedBy(), approvedBy),
+                    firstNonBlank(body.approvalReason(), approvalReason)
+            ));
             return Response.ok(result).build();
         } catch (NoSuchElementException e) {
             return notFound(e);
+        } catch (IllegalArgumentException e) {
+            return badRequest(e);
         } catch (AgentStateTransitionException e) {
             return unprocessable(e);
         }
@@ -134,6 +152,19 @@ public class AgentDnaResource {
 
     private Response unprocessable(AgentStateTransitionException e) {
         return Response.status(422).entity(new ErrorBody(e.getMessage())).build();
+    }
+
+    private Response unprocessable(IllegalStateException e) {
+        return Response.status(422).entity(new ErrorBody(e.getMessage())).build();
+    }
+
+    private Response badRequest(IllegalArgumentException e) {
+        return Response.status(Response.Status.BAD_REQUEST)
+                .entity(new ErrorBody(e.getMessage())).build();
+    }
+
+    private String firstNonBlank(String primary, String fallback) {
+        return primary != null && !primary.isBlank() ? primary : fallback;
     }
 
     private record ErrorBody(String error) {}

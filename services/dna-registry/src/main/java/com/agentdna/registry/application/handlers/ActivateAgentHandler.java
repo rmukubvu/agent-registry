@@ -33,10 +33,24 @@ public class ActivateAgentHandler {
     }
 
     private AgentTransitionResult executeActivate(ActivateAgentCommand cmd) {
+        requireApprovalMetadata(cmd);
+
         var record = repository.findById(cmd.dnaId());
         AgentDnaStateMachine.transition(record.status(), AgentStatus.ACTIVE);
-        repository.updateStatus(cmd.dnaId(), record.status(), AgentStatus.ACTIVE, record.version());
-        log.info("Agent activated dnaId={}", cmd.dnaId());
+        repository.approveActivation(cmd.dnaId(), record.version(), cmd.approvedBy(), cmd.approvalReason());
+        log.info("Agent activated dnaId={} approvedBy={}", cmd.dnaId(), cmd.approvedBy());
         return new AgentTransitionResult(cmd.dnaId(), record.status(), AgentStatus.ACTIVE);
+    }
+
+    private void requireApprovalMetadata(ActivateAgentCommand cmd) {
+        if (cmd.idemKey() == null || cmd.idemKey().isBlank()) {
+            throw new IllegalArgumentException("idemKey is required for activation");
+        }
+        if (cmd.approvedBy() == null || cmd.approvedBy().isBlank()) {
+            throw new IllegalArgumentException("approvedBy is required for activation");
+        }
+        if (cmd.approvalReason() == null || cmd.approvalReason().isBlank()) {
+            throw new IllegalArgumentException("approvalReason is required for activation");
+        }
     }
 }

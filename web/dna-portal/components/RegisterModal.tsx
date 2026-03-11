@@ -9,6 +9,7 @@ export default function RegisterModal({ onClose, onSuccess }: Props) {
   const [form, setForm] = useState({
     agentName: '', ownerName: '', ownerId: crypto.randomUUID(),
     jurisdiction: 'US', capabilities: 'mcp:filesystem', publicKeyHex: '',
+    workloadIdentity: '', provenanceRef: '',
     parentDnaId: '',   // optional — leave blank for manager agents
     expiresAt: '',     // optional — datetime-local string; blank = persistent
   })
@@ -38,6 +39,8 @@ export default function RegisterModal({ onClose, onSuccess }: Props) {
 
       const result = await registerAgent({
         agentName: form.agentName.trim(), publicKeyHex: hex,
+        workloadIdentity: form.workloadIdentity.trim() || null,
+        provenanceRef: form.provenanceRef.trim() || null,
         ownerId: form.ownerId, ownerName: form.ownerName.trim() || 'Unknown',
         jurisdiction: form.jurisdiction, capabilities: caps,
         parentDnaId: isWorker ? form.parentDnaId.trim() : null,
@@ -93,6 +96,16 @@ export default function RegisterModal({ onClose, onSuccess }: Props) {
             <input value={form.publicKeyHex} onChange={set('publicKeyHex')}
               placeholder="auto-generated" className={input} />
           </Field>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="Workload Identity">
+              <input value={form.workloadIdentity} onChange={set('workloadIdentity')}
+                placeholder="svc://xyz/invoice-agent" className={input} />
+            </Field>
+            <Field label="Provenance Reference">
+              <input value={form.provenanceRef} onChange={set('provenanceRef')}
+                placeholder="build://ci/run-1234" className={input} />
+            </Field>
+          </div>
 
           {/* ── Hierarchical DNA ──────────────────────────────────────── */}
           <div className="space-y-3 border-t border-border pt-4">
