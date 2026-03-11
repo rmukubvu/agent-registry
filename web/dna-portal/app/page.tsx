@@ -114,15 +114,27 @@ export default function DashboardPage() {
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div className="rounded-[20px] border border-border bg-muted px-5 py-4">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-soft">Active now</p>
-                    <p className="mt-3 text-3xl font-semibold text-ink">{active}</p>
+                    <p className={`mt-3 text-3xl font-semibold ${active === 0 ? 'text-soft/50' : 'text-ink'}`}>
+                      {active === 0 ? '—' : active}
+                    </p>
                   </div>
                   <div className="rounded-[20px] border border-border bg-muted px-5 py-4">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-soft">Workers</p>
-                    <p className="mt-3 text-3xl font-semibold text-ink">{workers}</p>
+                    <p className={`mt-3 text-3xl font-semibold ${workers === 0 ? 'text-soft/50' : 'text-ink'}`}>
+                      {workers === 0 ? '—' : workers}
+                    </p>
                   </div>
-                  <div className="rounded-[20px] border border-border bg-muted px-5 py-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-soft">Awaiting review</p>
-                    <p className="mt-3 text-3xl font-semibold text-ink">{pending}</p>
+                  <div className={`rounded-[20px] border px-5 py-4 transition-colors ${
+                    pending > 0 ? 'border-amber-200 bg-amber-50' : 'border-border bg-muted'
+                  }`}>
+                    <p className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${
+                      pending > 0 ? 'text-amber-700' : 'text-soft'
+                    }`}>Awaiting review</p>
+                    <p className={`mt-3 text-3xl font-semibold ${
+                      pending > 0 ? 'text-amber-700' : 'text-soft/50'
+                    }`}>
+                      {pending === 0 ? '—' : pending}
+                    </p>
                   </div>
                 </div>
 

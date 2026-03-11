@@ -3,7 +3,7 @@ import { useState } from 'react'
 import type { Agent } from '@/lib/api'
 import { activateAgent, suspendAgent, reinstateAgent, revokeAgent, isWorker, isManager, isExpired } from '@/lib/api'
 import StatusBadge from './StatusBadge'
-import { Shield, ShieldOff, RotateCcw, Zap, GitBranch, Users, Clock } from 'lucide-react'
+import { Shield, ShieldOff, RotateCcw, Zap, GitBranch, Users, Clock, Dna } from 'lucide-react'
 
 interface Props {
   agents: Agent[]
@@ -22,6 +22,9 @@ export default function AgentTable({ agents, onRefresh }: Props) {
   if (agents.length === 0) {
     return (
       <div className="rounded-[24px] border border-dashed border-border bg-panel px-8 py-16 text-center">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-blue-200 bg-accentSoft">
+          <Dna size={22} className="text-accent" />
+        </div>
         <p className="text-lg font-semibold text-ink">No agents registered yet.</p>
         <p className="mt-2 text-sm leading-6 text-soft">
           Create a manager or worker record to start demonstrating the registry lifecycle.
