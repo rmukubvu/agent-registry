@@ -158,9 +158,6 @@ export default function DashboardPage() {
                   ))}
                 </div>
 
-                <div className="rounded-[18px] border border-blue-200 bg-accentSoft px-5 py-4 text-sm leading-7 text-[#24507b]">
-                  The portal is now positioned more like documentation than a security dashboard, so the product reads as a standards-ready platform rather than an internal admin tool.
-                </div>
               </div>
             </section>
 
