@@ -14,14 +14,14 @@ function Stat({
 }) {
   return (
     <div className="rounded-[18px] border border-border bg-panel p-4">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-soft">{label}</p>
-          <p className={`mt-2 text-[2rem] font-semibold leading-none ${value === 0 ? 'text-soft/50' : 'text-ink'}`}>
+          <p className="min-h-[2rem] text-[11px] font-semibold uppercase tracking-[0.18em] text-soft leading-[1.6]">{label}</p>
+          <p className={`mt-1 text-[2rem] font-semibold leading-none ${value === 0 ? 'text-soft/50' : 'text-ink'}`}>
             {value === 0 ? '—' : value}
           </p>
         </div>
-        <div className={`rounded-2xl border px-3 py-3 ${tone}`}>
+        <div className={`shrink-0 rounded-2xl border px-3 py-3 ${tone}`}>
           {icon}
         </div>
       </div>
