@@ -11,6 +11,14 @@ export default function DashboardPage() {
   const [agents, setAgents]     = useState<Agent[]>([])
   const [loading, setLoading]   = useState(true)
   const [showRegister, setShowRegister] = useState(false)
+  const [verifyId, setVerifyId] = useState('')
+
+  function handleVerify(id: string) {
+    setVerifyId(id)
+    setTimeout(() => {
+      document.getElementById('verification')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 150)
+  }
 
   const refresh = useCallback(async () => {
     try {
@@ -188,7 +196,7 @@ export default function DashboardPage() {
                   Loading registry records…
                 </div>
               ) : (
-                <AgentTable agents={agents} onRefresh={refresh} />
+                <AgentTable agents={agents} onRefresh={refresh} onVerify={handleVerify} />
               )}
             </section>
           </div>
@@ -214,7 +222,7 @@ export default function DashboardPage() {
             </section>
 
             <section id="verification">
-              <VerifyPanel />
+              <VerifyPanel initialDnaId={verifyId} />
             </section>
           </div>
         </div>

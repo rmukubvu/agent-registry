@@ -1,16 +1,30 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { verifyAgent, enforceToolCall, type VerifyResult, type EnforceResult } from '@/lib/api'
 import StatusBadge from './StatusBadge'
 import { Search, ShieldCheck, ShieldX } from 'lucide-react'
 
-export default function VerifyPanel() {
-  const [dnaId, setDnaId] = useState('')
-  const [tool, setTool] = useState('mcp:filesystem:read')
-  const [verify, setVerify] = useState<VerifyResult | null>(null)
-  const [enforce, setEnforce] = useState<EnforceResult | null>(null)
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+interface Props {
+  initialDnaId?: string
+}
+
+export default function VerifyPanel({ initialDnaId }: Props) {
+  const [dnaId, setDnaId]       = useState(initialDnaId ?? '')
+  const [tool, setTool]         = useState('mcp:filesystem:read')
+  const [verify, setVerify]     = useState<VerifyResult | null>(null)
+  const [enforce, setEnforce]   = useState<EnforceResult | null>(null)
+  const [error, setError]       = useState('')
+  const [busy, setBusy]         = useState(false)
+
+  // Sync when verify shortcut pre-fills the ID from the agent drawer
+  useEffect(() => {
+    if (initialDnaId) {
+      setDnaId(initialDnaId)
+      setVerify(null)
+      setEnforce(null)
+      setError('')
+    }
+  }, [initialDnaId])
 
   async function run() {
     if (!dnaId.trim()) return

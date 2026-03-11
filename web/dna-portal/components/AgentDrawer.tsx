@@ -1,11 +1,11 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { Agent } from '@/lib/api'
 import { activateAgent, suspendAgent, reinstateAgent, revokeAgent, isWorker, isManager, isExpired } from '@/lib/api'
 import StatusBadge from './StatusBadge'
 import {
   X, Copy, Check, GitBranch, Users, Clock,
-  Zap, ShieldOff, RotateCcw, Shield,
+  Zap, ShieldOff, RotateCcw, Shield, ScanSearch,
 } from 'lucide-react'
 
 interface Props {
@@ -13,11 +13,19 @@ interface Props {
   allAgents: Agent[]
   onClose: () => void
   onRefresh: () => Promise<void>
+  onVerify: (id: string) => void
 }
 
-export default function AgentDrawer({ agent, allAgents, onClose, onRefresh }: Props) {
+export default function AgentDrawer({ agent, allAgents, onClose, onRefresh, onVerify }: Props) {
   const [copied, setCopied] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [visible, setVisible] = useState(false)
+
+  // Trigger slide-in on mount
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setVisible(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
 
   const worker = isWorker(agent)
   const manager = isManager(agent, allAgents)
@@ -36,16 +44,21 @@ export default function AgentDrawer({ agent, allAgents, onClose, onRefresh }: Pr
     setTimeout(() => setCopied(false), 2000)
   }
 
+  function handleVerify() {
+    onClose()
+    onVerify(agent.dnaId)
+  }
+
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop — fades in */}
       <div
-        className="fixed inset-0 z-40 bg-ink/20 backdrop-blur-sm"
+        className={`fixed inset-0 z-40 bg-ink/20 backdrop-blur-sm transition-opacity duration-300 ${visible ? 'opacity-100' : 'opacity-0'}`}
         onClick={onClose}
       />
 
-      {/* Drawer */}
-      <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[480px] flex-col border-l border-border bg-panel shadow-2xl">
+      {/* Drawer — slides in from right */}
+      <div className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-[480px] flex-col border-l border-border bg-panel shadow-2xl transition-transform duration-300 ease-out ${visible ? 'translate-x-0' : 'translate-x-full'}`}>
 
         {/* Header */}
         <div className="flex items-start justify-between border-b border-border px-6 py-5">
@@ -69,12 +82,23 @@ export default function AgentDrawer({ agent, allAgents, onClose, onRefresh }: Pr
             </div>
             <h2 className="text-xl font-semibold text-ink">{agent.agentName}</h2>
           </div>
-          <button
-            onClick={onClose}
-            className="ml-4 mt-0.5 shrink-0 rounded-xl border border-border p-1.5 text-soft transition-colors hover:border-slate-300 hover:text-ink"
-          >
-            <X size={16} />
-          </button>
+          <div className="ml-4 mt-0.5 flex shrink-0 items-center gap-2">
+            {/* Verify shortcut */}
+            <button
+              onClick={handleVerify}
+              title="Run live verification"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-accent bg-accentSoft px-3 py-1.5 text-xs font-medium text-accent transition-colors hover:bg-accent hover:text-white"
+            >
+              <ScanSearch size={13} />
+              Verify
+            </button>
+            <button
+              onClick={onClose}
+              className="rounded-xl border border-border p-1.5 text-soft transition-colors hover:border-slate-300 hover:text-ink"
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
 
         {/* Scrollable body */}
@@ -195,13 +219,13 @@ export default function AgentDrawer({ agent, allAgents, onClose, onRefresh }: Pr
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-soft">Hierarchy</p>
               <div className="divide-y divide-border rounded-[14px] border border-border overflow-hidden">
                 {worker && agent.parentDnaId && (
-                  <div className="flex items-center justify-between px-4 py-3">
+                  <div className="flex items-center justify-between bg-muted px-4 py-3">
                     <span className="text-sm text-soft">Parent manager</span>
                     <span className="font-mono text-xs text-indigo-700">{agent.parentDnaId.slice(0, 18)}…</span>
                   </div>
                 )}
                 {manager && (
-                  <div className="flex items-center justify-between px-4 py-3">
+                  <div className="flex items-center justify-between bg-muted px-4 py-3">
                     <span className="text-sm text-soft">Delegated workers</span>
                     <span className="text-sm font-semibold text-ink">{workerCount}</span>
                   </div>
