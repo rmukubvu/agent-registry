@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.0.4 (2026-03-13)
+
+Full Changelog: [v0.0.3...v0.0.4](https://github.com/rmukubvu/agent-registry/compare/v0.0.3...v0.0.4)
+
+### Chores
+
+* sync repo ([0c3ce93](https://github.com/rmukubvu/agent-registry/commit/0c3ce9383ba2250b2533e7b599a9a43710df9e60))
+* update SDK settings ([79a32c5](https://github.com/rmukubvu/agent-registry/commit/79a32c55123e3c4dfda46fc6d91a18f9cf10b874))
+* update SDK settings ([dbe3121](https://github.com/rmukubvu/agent-registry/commit/dbe31219146611b35e019f46994ddcc68173baac))
+
 ## 0.0.3 (2026-03-13)
 
 Full Changelog: [v0.0.2...v0.0.3](https://github.com/rmukubvu/agent-dna/compare/v0.0.2...v0.0.3)
