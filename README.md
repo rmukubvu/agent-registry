@@ -1,343 +1,614 @@
-# Agent DNA
+# Agentregistry Java API Library
 
-> **A global identity and revocation registry for AI agents — analogous to DNS for the internet.**
+[![Maven Central](https://img.shields.io/maven-central/v/com.agentregistry.api/agentregistry-java)](https://central.sonatype.com/artifact/com.agentregistry.api/agentregistry-java/0.0.1)
+[![javadoc](https://javadoc.io/badge2/com.agentregistry.api/agentregistry-java/0.0.1/javadoc.svg)](https://javadoc.io/doc/com.agentregistry.api/agentregistry-java/0.0.1)
 
-Every agent that wants to use MCP tools must hold a registered DNA record. Misbehaving agents can be blocked worldwide in seconds by revoking their record.
+The Agentregistry Java SDK provides convenient access to the Agentregistry REST API from applications written in Java.
 
----
+It is generated with [Stainless](https://www.stainless.com/).
 
-## The Problem
+Javadocs are available on [javadoc.io](https://javadoc.io/doc/com.agentregistry.api/agentregistry-java/0.0.1).
 
-AI agents are being deployed at scale with no shared identity layer. Today, any process can claim to be any agent, call any tool, and leave no auditable trail. There is no equivalent of:
+## Installation
 
-- A **certificate authority** that says "this agent is who it claims to be"
-- A **revocation list** that propagates a ban globally the moment an agent misbehaves
-- A **chokepoint** that MCP-compatible tool servers can check before executing a dangerous operation
+### Gradle
 
-The result is an environment where rogue agents — whether misconfigured, compromised, or deliberately malicious — can call filesystem tools, web APIs, and databases with no gatekeeping. The industry is building powerful tools and handing them to agents with no identity infrastructure underneath.
-
----
-
-## What Agent DNA Is
-
-Agent DNA is a **neutral, open registry** that any AI framework can integrate with. It is intentionally not owned by any single model provider. Its design mirrors how the internet solved a similar problem with DNS and PKI:
-
-| Internet | Agent DNA |
-|---|---|
-| DNS — maps names to addresses | DNA registry — maps agent identities to verified records |
-| Certificate Authority | DNA registry as root of trust |
-| Certificate revocation (CRL/OCSP) | DNA revocation — instant global ban |
-| Firewall / WAF | DNA enforcer — blocks unauthorised tool calls |
-
-An agent registers once. Its record carries a cryptographic public key (Ed25519), ownership metadata, declared MCP capabilities, and optional delegation metadata for worker agents. When the agent attempts a tool call, the enforcer checks the registry in real time. If the record is expired, suspended, revoked, or blocked by a revoked parent, the call is denied.
-
-## Advanced Architecture: Hierarchical And Delegated Identity
-
-To support multi-agent systems, Agent DNA implements a parent-child delegation model instead of treating every agent as an isolated identity.
-
-### Delegation Model
-
-- **Manager agents** are long-lived top-level records.
-- **Worker agents** can be registered under a parent via `parentDnaId`.
-- **Ephemeral workers** can carry an `expiresAt` TTL and automatically fail verification after expiry.
-- **Cascade revocation** applies downward only: revoking a parent blocks its children, while revoking a child does not affect the parent or sibling workers.
-
-### Proof Of Identity
-
-The registry stores an Ed25519 public key for each agent. The enforcer can verify an optional Ed25519 signature over `{dnaId}:{toolName}` when the client includes a `signature` field. Signature verification is implemented today, but signatures are not yet mandatory on every request.
-
----
-
-## How It Works
-
-```
-  ┌─────────────────────────────────────────────────────────┐
-  │                      AI Agent                           │
-  │  (Claude, GPT-4o, Gemini, custom — any framework)       │
-  └────────────────────────┬────────────────────────────────┘
-                           │  POST /v1/enforce
-                           │  { dnaId, toolName, payload, signature? }
-                           ▼
-  ┌─────────────────────────────────────────────────────────┐
-  │               dna-enforcer  :8082                       │
-  │                                                         │
-  │  1. Extract dnaId from request                          │
-  │  2. Call dna-registry /v1/agents/{dnaId}/verify         │
-  │  3. If authorised, optionally verify Ed25519 signature  │
-  │  4. If denied → return registry reason                  │
-  └────────────────────────┬────────────────────────────────┘
-                           │  GET /v1/agents/{dnaId}/verify
-                           ▼
-  ┌─────────────────────────────────────────────────────────┐
-  │              dna-registry  :8081                        │
-  │                                                         │
-  │  PostgreSQL-backed registry of all agent records        │
-  │  State machine + TTL + parent/child cascade checks      │
-  │  Idempotent writes · Optimistic locking · Audit log     │
-  └─────────────────────────────────────────────────────────┘
-                           ▲
-                           │  REST API (register / activate /
-                           │  suspend / reinstate / revoke)
-  ┌─────────────────────────────────────────────────────────┐
-  │              dna-portal  :3002                          │
-  │                                                         │
-  │  Next.js dashboard — register agents, manage lifecycle, │
-  │  live verification panel, enforcer test                 │
-  └─────────────────────────────────────────────────────────┘
+```kotlin
+implementation("com.agentregistry.api:agentregistry-java:0.0.1")
 ```
 
-### Agent Lifecycle (State Machine)
+### Maven
 
-```
-  PENDING ──activate──► ACTIVE ──suspend──► SUSPENDED
-                          │                    │
-                        revoke               revoke / reinstate
-                          │                    │
-                          ▼                    ▼
-                       REVOKED ◄──────────────┘   (terminal)
-                                  ACTIVE
+```xml
+<dependency>
+  <groupId>com.agentregistry.api</groupId>
+  <artifactId>agentregistry-java</artifactId>
+  <version>0.0.1</version>
+</dependency>
 ```
 
-| Transition | Who triggers it | Effect |
-|---|---|---|
-| `PENDING → ACTIVE` | Registry operator / owner | Agent may now use tools |
-| `ACTIVE → SUSPENDED` | Registry operator | Agent blocked; appeal possible |
-| `SUSPENDED → ACTIVE` | Registry operator | Reinstated after review |
-| `ACTIVE / SUSPENDED → REVOKED` | Registry operator | Permanent global ban |
+## Requirements
 
----
+This library requires Java 8 or later.
 
-## Project Structure
+## Usage
 
-```
-agent-dna/
-├── services/
-│   ├── dna-registry/          # Core registry — REST API + PostgreSQL
-│   │   ├── domain/            # AgentRecord, AgentStatus, state machine
-│   │   ├── application/       # Command handlers, idempotency
-│   │   ├── infrastructure/    # jOOQ repository, outbox publisher
-│   │   └── api/rest/          # JAX-RS resource (7 endpoints)
-│   │
-│   └── dna-enforcer/          # MCP middleware — checks DNA before tool calls
-│       ├── application/       # EnforcerService
-│       ├── infrastructure/    # HttpDnaRegistryClient
-│       └── api/rest/          # EnforcerResource (POST /v1/enforce)
-│
-├── web/
-│   └── dna-portal/            # Next.js 15 management dashboard
-│       ├── components/        # AgentTable, RegisterModal, VerifyPanel, StatsBar
-│       └── lib/api.ts         # Registry + enforcer client
-│
-└── demo/
-    ├── registered_agent.py    # Happy path: register → activate → use tools → revoke
-    ├── rogue_agent.py         # 3 blocked scenarios: fake ID, unactivated, suspended
-    └── run_demo.sh            # Full demo orchestrator with coloured output
+```java
+import com.agentregistry.api.client.AgentregistryClient;
+import com.agentregistry.api.client.okhttp.AgentregistryOkHttpClient;
+import com.agentregistry.api.models.q.health.HealthCheckReadyParams;
+import com.agentregistry.api.models.q.health.HealthStatus;
+
+// Configures using the `agentregistry.apiKey` and `agentregistry.baseUrl` system properties
+// Or configures using the `AGENTREGISTRY_API_KEY` and `AGENTREGISTRY_BASE_URL` environment variables
+AgentregistryClient client = AgentregistryOkHttpClient.fromEnv();
+
+HealthStatus healthStatus = client.q().health().checkReady();
 ```
 
----
+## Client configuration
 
-## REST API — dna-registry (:8081)
+Configure the client using system properties or environment variables:
 
-| Method | Path | Description | Response |
-|---|---|---|---|
-| `POST` | `/v1/agents` | Register a new agent | `201` with `dnaId` |
-| `GET` | `/v1/agents` | List all agents | `200` array |
-| `PUT` | `/v1/agents/{id}/activate` | Transition PENDING → ACTIVE | `200` |
-| `PUT` | `/v1/agents/{id}/suspend` | Transition ACTIVE → SUSPENDED | `200` |
-| `PUT` | `/v1/agents/{id}/reinstate` | Transition SUSPENDED → ACTIVE | `200` |
-| `PUT` | `/v1/agents/{id}/revoke` | Permanently revoke (any → REVOKED) | `200` |
-| `GET` | `/v1/agents/{id}/verify` | Check authorization status | `200` always |
+```java
+import com.agentregistry.api.client.AgentregistryClient;
+import com.agentregistry.api.client.okhttp.AgentregistryOkHttpClient;
 
-**Verify response:**
-```json
-{
-  "dnaId":        "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "parentDnaId":  null,
-  "agentName":    "ClaudeIntakeAgent",
-  "publicKeyHex": "deadbeef...",
-  "status":       "ACTIVE",
-  "capabilities": ["mcp:filesystem", "mcp:web-search"],
-  "isAuthorized": true
+// Configures using the `agentregistry.apiKey` and `agentregistry.baseUrl` system properties
+// Or configures using the `AGENTREGISTRY_API_KEY` and `AGENTREGISTRY_BASE_URL` environment variables
+AgentregistryClient client = AgentregistryOkHttpClient.fromEnv();
+```
+
+Or manually:
+
+```java
+import com.agentregistry.api.client.AgentregistryClient;
+import com.agentregistry.api.client.okhttp.AgentregistryOkHttpClient;
+
+AgentregistryClient client = AgentregistryOkHttpClient.builder()
+    .apiKey("My API Key")
+    .build();
+```
+
+Or using a combination of the two approaches:
+
+```java
+import com.agentregistry.api.client.AgentregistryClient;
+import com.agentregistry.api.client.okhttp.AgentregistryOkHttpClient;
+
+AgentregistryClient client = AgentregistryOkHttpClient.builder()
+    // Configures using the `agentregistry.apiKey` and `agentregistry.baseUrl` system properties
+    // Or configures using the `AGENTREGISTRY_API_KEY` and `AGENTREGISTRY_BASE_URL` environment variables
+    .fromEnv()
+    .apiKey("My API Key")
+    .build();
+```
+
+See this table for the available options:
+
+| Setter    | System property         | Environment variable     | Required | Default value               |
+| --------- | ----------------------- | ------------------------ | -------- | --------------------------- |
+| `apiKey`  | `agentregistry.apiKey`  | `AGENTREGISTRY_API_KEY`  | false    | -                           |
+| `baseUrl` | `agentregistry.baseUrl` | `AGENTREGISTRY_BASE_URL` | true     | `"https://api.example.com"` |
+
+System properties take precedence over environment variables.
+
+> [!TIP]
+> Don't create more than one client in the same application. Each client has a connection pool and
+> thread pools, which are more efficient to share between requests.
+
+### Modifying configuration
+
+To temporarily use a modified client configuration, while reusing the same connection and thread pools, call `withOptions()` on any client or service:
+
+```java
+import com.agentregistry.api.client.AgentregistryClient;
+
+AgentregistryClient clientWithOptions = client.withOptions(optionsBuilder -> {
+    optionsBuilder.baseUrl("https://example.com");
+    optionsBuilder.maxRetries(42);
+});
+```
+
+The `withOptions()` method does not affect the original client or service.
+
+## Requests and responses
+
+To send a request to the Agentregistry API, build an instance of some `Params` class and pass it to the corresponding client method. When the response is received, it will be deserialized into an instance of a Java class.
+
+For example, `client.q().health().checkReady(...)` should be called with an instance of `HealthCheckReadyParams`, and it will return an instance of `HealthStatus`.
+
+## Immutability
+
+Each class in the SDK has an associated [builder](https://blogs.oracle.com/javamagazine/post/exploring-joshua-blochs-builder-design-pattern-in-java) or factory method for constructing it.
+
+Each class is [immutable](https://docs.oracle.com/javase/tutorial/essential/concurrency/immutable.html) once constructed. If the class has an associated builder, then it has a `toBuilder()` method, which can be used to convert it back to a builder for making a modified copy.
+
+Because each class is immutable, builder modification will _never_ affect already built class instances.
+
+## Asynchronous execution
+
+The default client is synchronous. To switch to asynchronous execution, call the `async()` method:
+
+```java
+import com.agentregistry.api.client.AgentregistryClient;
+import com.agentregistry.api.client.okhttp.AgentregistryOkHttpClient;
+import com.agentregistry.api.models.q.health.HealthCheckReadyParams;
+import com.agentregistry.api.models.q.health.HealthStatus;
+import java.util.concurrent.CompletableFuture;
+
+// Configures using the `agentregistry.apiKey` and `agentregistry.baseUrl` system properties
+// Or configures using the `AGENTREGISTRY_API_KEY` and `AGENTREGISTRY_BASE_URL` environment variables
+AgentregistryClient client = AgentregistryOkHttpClient.fromEnv();
+
+CompletableFuture<HealthStatus> healthStatus = client.async().q().health().checkReady();
+```
+
+Or create an asynchronous client from the beginning:
+
+```java
+import com.agentregistry.api.client.AgentregistryClientAsync;
+import com.agentregistry.api.client.okhttp.AgentregistryOkHttpClientAsync;
+import com.agentregistry.api.models.q.health.HealthCheckReadyParams;
+import com.agentregistry.api.models.q.health.HealthStatus;
+import java.util.concurrent.CompletableFuture;
+
+// Configures using the `agentregistry.apiKey` and `agentregistry.baseUrl` system properties
+// Or configures using the `AGENTREGISTRY_API_KEY` and `AGENTREGISTRY_BASE_URL` environment variables
+AgentregistryClientAsync client = AgentregistryOkHttpClientAsync.fromEnv();
+
+CompletableFuture<HealthStatus> healthStatus = client.q().health().checkReady();
+```
+
+The asynchronous client supports the same options as the synchronous one, except most methods return `CompletableFuture`s.
+
+## Raw responses
+
+The SDK defines methods that deserialize responses into instances of Java classes. However, these methods don't provide access to the response headers, status code, or the raw response body.
+
+To access this data, prefix any HTTP method call on a client or service with `withRawResponse()`:
+
+```java
+import com.agentregistry.api.core.http.Headers;
+import com.agentregistry.api.core.http.HttpResponseFor;
+import com.agentregistry.api.models.q.health.HealthCheckReadyParams;
+import com.agentregistry.api.models.q.health.HealthStatus;
+
+HttpResponseFor<HealthStatus> healthStatus = client.q().health().withRawResponse().checkReady();
+
+int statusCode = healthStatus.statusCode();
+Headers headers = healthStatus.headers();
+```
+
+You can still deserialize the response into an instance of a Java class if needed:
+
+```java
+import com.agentregistry.api.models.q.health.HealthStatus;
+
+HealthStatus parsedHealthStatus = healthStatus.parse();
+```
+
+## Error handling
+
+The SDK throws custom unchecked exception types:
+
+- [`AgentregistryServiceException`](agentregistry-java-core/src/main/kotlin/com/agentregistry/api/errors/AgentregistryServiceException.kt): Base class for HTTP errors. See this table for which exception subclass is thrown for each HTTP status code:
+
+  | Status | Exception                                                                                                                                |
+  | ------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+  | 400    | [`BadRequestException`](agentregistry-java-core/src/main/kotlin/com/agentregistry/api/errors/BadRequestException.kt)                     |
+  | 401    | [`UnauthorizedException`](agentregistry-java-core/src/main/kotlin/com/agentregistry/api/errors/UnauthorizedException.kt)                 |
+  | 403    | [`PermissionDeniedException`](agentregistry-java-core/src/main/kotlin/com/agentregistry/api/errors/PermissionDeniedException.kt)         |
+  | 404    | [`NotFoundException`](agentregistry-java-core/src/main/kotlin/com/agentregistry/api/errors/NotFoundException.kt)                         |
+  | 422    | [`UnprocessableEntityException`](agentregistry-java-core/src/main/kotlin/com/agentregistry/api/errors/UnprocessableEntityException.kt)   |
+  | 429    | [`RateLimitException`](agentregistry-java-core/src/main/kotlin/com/agentregistry/api/errors/RateLimitException.kt)                       |
+  | 5xx    | [`InternalServerException`](agentregistry-java-core/src/main/kotlin/com/agentregistry/api/errors/InternalServerException.kt)             |
+  | others | [`UnexpectedStatusCodeException`](agentregistry-java-core/src/main/kotlin/com/agentregistry/api/errors/UnexpectedStatusCodeException.kt) |
+
+- [`AgentregistryIoException`](agentregistry-java-core/src/main/kotlin/com/agentregistry/api/errors/AgentregistryIoException.kt): I/O networking errors.
+
+- [`AgentregistryRetryableException`](agentregistry-java-core/src/main/kotlin/com/agentregistry/api/errors/AgentregistryRetryableException.kt): Generic error indicating a failure that could be retried by the client.
+
+- [`AgentregistryInvalidDataException`](agentregistry-java-core/src/main/kotlin/com/agentregistry/api/errors/AgentregistryInvalidDataException.kt): Failure to interpret successfully parsed data. For example, when accessing a property that's supposed to be required, but the API unexpectedly omitted it from the response.
+
+- [`AgentregistryException`](agentregistry-java-core/src/main/kotlin/com/agentregistry/api/errors/AgentregistryException.kt): Base class for all exceptions. Most errors will result in one of the previously mentioned ones, but completely generic errors may be thrown using the base class.
+
+## Logging
+
+The SDK uses the standard [OkHttp logging interceptor](https://github.com/square/okhttp/tree/master/okhttp-logging-interceptor).
+
+Enable logging by setting the `AGENTREGISTRY_LOG` environment variable to `info`:
+
+```sh
+export AGENTREGISTRY_LOG=info
+```
+
+Or to `debug` for more verbose logging:
+
+```sh
+export AGENTREGISTRY_LOG=debug
+```
+
+## ProGuard and R8
+
+Although the SDK uses reflection, it is still usable with [ProGuard](https://github.com/Guardsquare/proguard) and [R8](https://developer.android.com/topic/performance/app-optimization/enable-app-optimization) because `agentregistry-java-core` is published with a [configuration file](agentregistry-java-core/src/main/resources/META-INF/proguard/agentregistry-java-core.pro) containing [keep rules](https://www.guardsquare.com/manual/configuration/usage).
+
+ProGuard and R8 should automatically detect and use the published rules, but you can also manually copy the keep rules if necessary.
+
+## Jackson
+
+The SDK depends on [Jackson](https://github.com/FasterXML/jackson) for JSON serialization/deserialization. It is compatible with version 2.13.4 or higher, but depends on version 2.18.2 by default.
+
+The SDK throws an exception if it detects an incompatible Jackson version at runtime (e.g. if the default version was overridden in your Maven or Gradle config).
+
+If the SDK threw an exception, but you're _certain_ the version is compatible, then disable the version check using the `checkJacksonVersionCompatibility` on [`AgentregistryOkHttpClient`](agentregistry-java-client-okhttp/src/main/kotlin/com/agentregistry/api/client/okhttp/AgentregistryOkHttpClient.kt) or [`AgentregistryOkHttpClientAsync`](agentregistry-java-client-okhttp/src/main/kotlin/com/agentregistry/api/client/okhttp/AgentregistryOkHttpClientAsync.kt).
+
+> [!CAUTION]
+> We make no guarantee that the SDK works correctly when the Jackson version check is disabled.
+
+Also note that there are bugs in older Jackson versions that can affect the SDK. We don't work around all Jackson bugs ([example](https://github.com/FasterXML/jackson-databind/issues/3240)) and expect users to upgrade Jackson for those instead.
+
+## Network options
+
+### Retries
+
+The SDK automatically retries 2 times by default, with a short exponential backoff between requests.
+
+Only the following error types are retried:
+
+- Connection errors (for example, due to a network connectivity problem)
+- 408 Request Timeout
+- 409 Conflict
+- 429 Rate Limit
+- 5xx Internal
+
+The API may also explicitly instruct the SDK to retry or not retry a request.
+
+To set a custom number of retries, configure the client using the `maxRetries` method:
+
+```java
+import com.agentregistry.api.client.AgentregistryClient;
+import com.agentregistry.api.client.okhttp.AgentregistryOkHttpClient;
+
+AgentregistryClient client = AgentregistryOkHttpClient.builder()
+    .fromEnv()
+    .maxRetries(4)
+    .build();
+```
+
+### Timeouts
+
+Requests time out after 1 minute by default.
+
+To set a custom timeout, configure the method call using the `timeout` method:
+
+```java
+import com.agentregistry.api.models.q.health.HealthStatus;
+
+HealthStatus healthStatus = client.q().health().checkReady(RequestOptions.builder().timeout(Duration.ofSeconds(30)).build());
+```
+
+Or configure the default for all method calls at the client level:
+
+```java
+import com.agentregistry.api.client.AgentregistryClient;
+import com.agentregistry.api.client.okhttp.AgentregistryOkHttpClient;
+import java.time.Duration;
+
+AgentregistryClient client = AgentregistryOkHttpClient.builder()
+    .fromEnv()
+    .timeout(Duration.ofSeconds(30))
+    .build();
+```
+
+### Proxies
+
+To route requests through a proxy, configure the client using the `proxy` method:
+
+```java
+import com.agentregistry.api.client.AgentregistryClient;
+import com.agentregistry.api.client.okhttp.AgentregistryOkHttpClient;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+
+AgentregistryClient client = AgentregistryOkHttpClient.builder()
+    .fromEnv()
+    .proxy(new Proxy(
+      Proxy.Type.HTTP, new InetSocketAddress(
+        "https://example.com", 8080
+      )
+    ))
+    .build();
+```
+
+### Connection pooling
+
+To customize the underlying OkHttp connection pool, configure the client using the `maxIdleConnections` and `keepAliveDuration` methods:
+
+```java
+import com.agentregistry.api.client.AgentregistryClient;
+import com.agentregistry.api.client.okhttp.AgentregistryOkHttpClient;
+import java.time.Duration;
+
+AgentregistryClient client = AgentregistryOkHttpClient.builder()
+    .fromEnv()
+    // If `maxIdleConnections` is set, then `keepAliveDuration` must be set, and vice versa.
+    .maxIdleConnections(10)
+    .keepAliveDuration(Duration.ofMinutes(2))
+    .build();
+```
+
+If both options are unset, OkHttp's default connection pool settings are used.
+
+### HTTPS
+
+> [!NOTE]
+> Most applications should not call these methods, and instead use the system defaults. The defaults include
+> special optimizations that can be lost if the implementations are modified.
+
+To configure how HTTPS connections are secured, configure the client using the `sslSocketFactory`, `trustManager`, and `hostnameVerifier` methods:
+
+```java
+import com.agentregistry.api.client.AgentregistryClient;
+import com.agentregistry.api.client.okhttp.AgentregistryOkHttpClient;
+
+AgentregistryClient client = AgentregistryOkHttpClient.builder()
+    .fromEnv()
+    // If `sslSocketFactory` is set, then `trustManager` must be set, and vice versa.
+    .sslSocketFactory(yourSSLSocketFactory)
+    .trustManager(yourTrustManager)
+    .hostnameVerifier(yourHostnameVerifier)
+    .build();
+```
+
+### Custom HTTP client
+
+The SDK consists of three artifacts:
+
+- `agentregistry-java-core`
+  - Contains core SDK logic
+  - Does not depend on [OkHttp](https://square.github.io/okhttp)
+  - Exposes [`AgentregistryClient`](agentregistry-java-core/src/main/kotlin/com/agentregistry/api/client/AgentregistryClient.kt), [`AgentregistryClientAsync`](agentregistry-java-core/src/main/kotlin/com/agentregistry/api/client/AgentregistryClientAsync.kt), [`AgentregistryClientImpl`](agentregistry-java-core/src/main/kotlin/com/agentregistry/api/client/AgentregistryClientImpl.kt), and [`AgentregistryClientAsyncImpl`](agentregistry-java-core/src/main/kotlin/com/agentregistry/api/client/AgentregistryClientAsyncImpl.kt), all of which can work with any HTTP client
+- `agentregistry-java-client-okhttp`
+  - Depends on [OkHttp](https://square.github.io/okhttp)
+  - Exposes [`AgentregistryOkHttpClient`](agentregistry-java-client-okhttp/src/main/kotlin/com/agentregistry/api/client/okhttp/AgentregistryOkHttpClient.kt) and [`AgentregistryOkHttpClientAsync`](agentregistry-java-client-okhttp/src/main/kotlin/com/agentregistry/api/client/okhttp/AgentregistryOkHttpClientAsync.kt), which provide a way to construct [`AgentregistryClientImpl`](agentregistry-java-core/src/main/kotlin/com/agentregistry/api/client/AgentregistryClientImpl.kt) and [`AgentregistryClientAsyncImpl`](agentregistry-java-core/src/main/kotlin/com/agentregistry/api/client/AgentregistryClientAsyncImpl.kt), respectively, using OkHttp
+- `agentregistry-java`
+  - Depends on and exposes the APIs of both `agentregistry-java-core` and `agentregistry-java-client-okhttp`
+  - Does not have its own logic
+
+This structure allows replacing the SDK's default HTTP client without pulling in unnecessary dependencies.
+
+#### Customized [`OkHttpClient`](https://square.github.io/okhttp/3.x/okhttp/okhttp3/OkHttpClient.html)
+
+> [!TIP]
+> Try the available [network options](#network-options) before replacing the default client.
+
+To use a customized `OkHttpClient`:
+
+1. Replace your [`agentregistry-java` dependency](#installation) with `agentregistry-java-core`
+2. Copy `agentregistry-java-client-okhttp`'s [`OkHttpClient`](agentregistry-java-client-okhttp/src/main/kotlin/com/agentregistry/api/client/okhttp/OkHttpClient.kt) class into your code and customize it
+3. Construct [`AgentregistryClientImpl`](agentregistry-java-core/src/main/kotlin/com/agentregistry/api/client/AgentregistryClientImpl.kt) or [`AgentregistryClientAsyncImpl`](agentregistry-java-core/src/main/kotlin/com/agentregistry/api/client/AgentregistryClientAsyncImpl.kt), similarly to [`AgentregistryOkHttpClient`](agentregistry-java-client-okhttp/src/main/kotlin/com/agentregistry/api/client/okhttp/AgentregistryOkHttpClient.kt) or [`AgentregistryOkHttpClientAsync`](agentregistry-java-client-okhttp/src/main/kotlin/com/agentregistry/api/client/okhttp/AgentregistryOkHttpClientAsync.kt), using your customized client
+
+### Completely custom HTTP client
+
+To use a completely custom HTTP client:
+
+1. Replace your [`agentregistry-java` dependency](#installation) with `agentregistry-java-core`
+2. Write a class that implements the [`HttpClient`](agentregistry-java-core/src/main/kotlin/com/agentregistry/api/core/http/HttpClient.kt) interface
+3. Construct [`AgentregistryClientImpl`](agentregistry-java-core/src/main/kotlin/com/agentregistry/api/client/AgentregistryClientImpl.kt) or [`AgentregistryClientAsyncImpl`](agentregistry-java-core/src/main/kotlin/com/agentregistry/api/client/AgentregistryClientAsyncImpl.kt), similarly to [`AgentregistryOkHttpClient`](agentregistry-java-client-okhttp/src/main/kotlin/com/agentregistry/api/client/okhttp/AgentregistryOkHttpClient.kt) or [`AgentregistryOkHttpClientAsync`](agentregistry-java-client-okhttp/src/main/kotlin/com/agentregistry/api/client/okhttp/AgentregistryOkHttpClientAsync.kt), using your new client class
+
+## Undocumented API functionality
+
+The SDK is typed for convenient usage of the documented API. However, it also supports working with undocumented or not yet supported parts of the API.
+
+### Parameters
+
+To set undocumented parameters, call the `putAdditionalHeader`, `putAdditionalQueryParam`, or `putAdditionalBodyProperty` methods on any `Params` class:
+
+```java
+import com.agentregistry.api.core.JsonValue;
+import com.agentregistry.api.models.q.health.HealthCheckReadyParams;
+
+HealthCheckReadyParams params = HealthCheckReadyParams.builder()
+    .putAdditionalHeader("Secret-Header", "42")
+    .putAdditionalQueryParam("secret_query_param", "42")
+    .putAdditionalBodyProperty("secretProperty", JsonValue.from("42"))
+    .build();
+```
+
+These can be accessed on the built object later using the `_additionalHeaders()`, `_additionalQueryParams()`, and `_additionalBodyProperties()` methods.
+
+To set a documented parameter or property to an undocumented or not yet supported _value_, pass a [`JsonValue`](agentregistry-java-core/src/main/kotlin/com/agentregistry/api/core/Values.kt) object to its setter:
+
+```java
+import com.agentregistry.api.models.q.health.HealthCheckReadyParams;
+
+HealthCheckReadyParams params = HealthCheckReadyParams.builder().build();
+```
+
+The most straightforward way to create a [`JsonValue`](agentregistry-java-core/src/main/kotlin/com/agentregistry/api/core/Values.kt) is using its `from(...)` method:
+
+```java
+import com.agentregistry.api.core.JsonValue;
+import java.util.List;
+import java.util.Map;
+
+// Create primitive JSON values
+JsonValue nullValue = JsonValue.from(null);
+JsonValue booleanValue = JsonValue.from(true);
+JsonValue numberValue = JsonValue.from(42);
+JsonValue stringValue = JsonValue.from("Hello World!");
+
+// Create a JSON array value equivalent to `["Hello", "World"]`
+JsonValue arrayValue = JsonValue.from(List.of(
+  "Hello", "World"
+));
+
+// Create a JSON object value equivalent to `{ "a": 1, "b": 2 }`
+JsonValue objectValue = JsonValue.from(Map.of(
+  "a", 1,
+  "b", 2
+));
+
+// Create an arbitrarily nested JSON equivalent to:
+// {
+//   "a": [1, 2],
+//   "b": [3, 4]
+// }
+JsonValue complexValue = JsonValue.from(Map.of(
+  "a", List.of(
+    1, 2
+  ),
+  "b", List.of(
+    3, 4
+  )
+));
+```
+
+Normally a `Builder` class's `build` method will throw [`IllegalStateException`](https://docs.oracle.com/javase/8/docs/api/java/lang/IllegalStateException.html) if any required parameter or property is unset.
+
+To forcibly omit a required parameter or property, pass [`JsonMissing`](agentregistry-java-core/src/main/kotlin/com/agentregistry/api/core/Values.kt):
+
+```java
+import com.agentregistry.api.core.JsonMissing;
+import com.agentregistry.api.models.agents.AgentCreateParams;
+import com.agentregistry.api.models.q.health.HealthCheckReadyParams;
+
+HealthCheckReadyParams params = AgentCreateParams.builder()
+    .addCapability("string")
+    .idemKey("idemKey")
+    .jurisdiction("jurisdiction")
+    .ownerId("182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e")
+    .ownerName("ownerName")
+    .publicKeyHex("publicKeyHex")
+    .agentName(JsonMissing.of())
+    .build();
+```
+
+### Response properties
+
+To access undocumented response properties, call the `_additionalProperties()` method:
+
+```java
+import com.agentregistry.api.core.JsonValue;
+import java.util.Map;
+
+Map<String, JsonValue> additionalProperties = client.q().health().checkReady(params)._additionalProperties();
+JsonValue secretPropertyValue = additionalProperties.get("secretProperty");
+
+String result = secretPropertyValue.accept(new JsonValue.Visitor<>() {
+    @Override
+    public String visitNull() {
+        return "It's null!";
+    }
+
+    @Override
+    public String visitBoolean(boolean value) {
+        return "It's a boolean!";
+    }
+
+    @Override
+    public String visitNumber(Number value) {
+        return "It's a number!";
+    }
+
+    // Other methods include `visitMissing`, `visitString`, `visitArray`, and `visitObject`
+    // The default implementation of each unimplemented method delegates to `visitDefault`, which throws by default, but can also be overridden
+});
+```
+
+To access a property's raw JSON value, which may be undocumented, call its `_` prefixed method:
+
+```java
+import com.agentregistry.api.core.JsonField;
+import java.util.Optional;
+
+JsonField<Object> field = client.q().health().checkReady(params)._field();
+
+if (field.isMissing()) {
+  // The property is absent from the JSON response
+} else if (field.isNull()) {
+  // The property was set to literal null
+} else {
+  // Check if value was provided as a string
+  // Other methods include `asNumber()`, `asBoolean()`, etc.
+  Optional<String> jsonString = field.asString();
+
+  // Try to deserialize into a custom type
+  MyClass myObject = field.asUnknown().orElseThrow().convert(MyClass.class);
 }
 ```
 
-## REST API — dna-enforcer (:8082)
+### Response validation
 
-| Method | Path | Description |
-|---|---|---|
-| `POST` | `/v1/enforce` | Check DNA and allow or block a tool call |
+In rare cases, the API may return a response that doesn't match the expected type. For example, the SDK may expect a property to contain a `String`, but the API could return something else.
 
-**Request:**
-```json
-{
-  "dnaId":       "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "toolName":    "mcp:filesystem:read",
-  "toolPayload": { "path": "/var/data/report.csv" },
-  "signature":   "optional hex-encoded Ed25519 signature over {dnaId}:{toolName}"
-}
+By default, the SDK will not throw an exception in this case. It will throw [`AgentregistryInvalidDataException`](agentregistry-java-core/src/main/kotlin/com/agentregistry/api/errors/AgentregistryInvalidDataException.kt) only if you directly access the property.
+
+If you would prefer to check that the response is completely well-typed upfront, then either call `validate()`:
+
+```java
+import com.agentregistry.api.models.q.health.HealthStatus;
+
+HealthStatus healthStatus = client.q().health().checkReady(params).validate();
 ```
 
-**Response (allowed):**
-```json
-{ "allowed": true,  "dnaId": "...", "agentName": "ClaudeIntakeAgent", "toolName": "mcp:filesystem:read" }
+Or configure the method call to validate the response using the `responseValidation` method:
+
+```java
+import com.agentregistry.api.models.q.health.HealthStatus;
+
+HealthStatus healthStatus = client.q().health().checkReady(RequestOptions.builder().responseValidation(true).build());
 ```
 
-**Response (blocked):**
-```json
-{ "allowed": false, "dnaId": "...", "agentName": null, "toolName": "mcp:filesystem:read", "reason": "Agent DNA not found in registry" }
+Or configure the default for all method calls at the client level:
+
+```java
+import com.agentregistry.api.client.AgentregistryClient;
+import com.agentregistry.api.client.okhttp.AgentregistryOkHttpClient;
+
+AgentregistryClient client = AgentregistryOkHttpClient.builder()
+    .fromEnv()
+    .responseValidation(true)
+    .build();
 ```
 
----
+## FAQ
 
-## Agent DNA Record
+### Why don't you use plain `enum` classes?
 
-```json
-{
-  "dnaId":         "uuid — globally unique, immutable",
-  "parentDnaId":   "uuid (nullable — set for delegated worker agents)",
-  "agentName":     "ClaudeWorker-12",
-  "publicKeyHex":  "ed25519 public key — agent proves identity",
-  "ownerId":       "uuid of the owning organisation",
-  "ownerName":     "TurfOS",
-  "jurisdiction":  "ZA",
-  "capabilities":  ["mcp:filesystem", "mcp:web-search"],
-  "status":        "ACTIVE",
-  "createdAt":     "2026-03-08T09:00:00Z",
-  "updatedAt":     "2026-03-08T09:01:00Z",
-  "revokedAt":     null,
-  "revokedReason": null,
-  "expiresAt":     "2026-03-09T00:00:00Z",
-  "version":       1
-}
-```
+Java `enum` classes are not trivially [forwards compatible](https://www.stainless.com/blog/making-java-enums-forwards-compatible). Using them in the SDK could cause runtime exceptions if the API is updated to respond with a new enum value.
 
----
+### Why do you represent fields using `JsonField<T>` instead of just plain `T`?
 
-## Running the POC
+Using `JsonField<T>` enables a few features:
 
-### Prerequisites
-- Java 23 (`JAVA_HOME=/Users/robson/Library/Java/JavaVirtualMachines/openjdk-23.0.1/Contents/Home`)
-- Docker Desktop (Quarkus Dev Services auto-starts PostgreSQL)
-- Node.js 20+ and npm
-- Python 3.9+ with `requests` (`pip install requests`)
+- Allowing usage of [undocumented API functionality](#undocumented-api-functionality)
+- Lazily [validating the API response against the expected shape](#response-validation)
+- Representing absent vs explicitly null values
 
-### Start the services
+### Why don't you use [`data` classes](https://kotlinlang.org/docs/data-classes.html)?
 
-```bash
-# Terminal 1 — DNA Registry (port 8081)
-cd /Users/robson/code/agent-dna
-JAVA_HOME=.../openjdk-23.0.1/Contents/Home \
-  ./gradlew :services:dna-registry:quarkusDev
+It is not [backwards compatible to add new fields to a data class](https://kotlinlang.org/docs/api-guidelines-backward-compatibility.html#avoid-using-data-classes-in-your-api) and we don't want to introduce a breaking change every time we add a field to a class.
 
-# Terminal 2 — DNA Enforcer (port 8082)
-JAVA_HOME=.../openjdk-23.0.1/Contents/Home \
-  ./gradlew :services:dna-enforcer:quarkusDev
+### Why don't you use checked exceptions?
 
-# Terminal 3 — Portal (port 3002)
-cd web/dna-portal && npm run dev
-```
+Checked exceptions are widely considered a mistake in the Java programming language. In fact, they were omitted from Kotlin for this reason.
 
-### Run the demo
+Checked exceptions:
 
-```bash
-bash demo/run_demo.sh
-```
+- Are verbose to handle
+- Encourage error handling at the wrong level of abstraction, where nothing can be done about the error
+- Are tedious to propagate due to the [function coloring problem](https://journal.stuffwithstuff.com/2015/02/01/what-color-is-your-function)
+- Don't play well with lambdas (also due to the function coloring problem)
 
-Expected output:
+## Semantic versioning
 
-```
-── Step 1: Register agent with DNA registry
-  ✓ Registered — dnaId=3fa85f64-…
-── Step 2: Activate the agent
-  ✓ Activated — PENDING → ACTIVE
-── Step 3: Verify authorization status
-  ✓ AUTHORIZED — status=ACTIVE
-── Step 4: Call tool via DNA enforcer
-  ✓ TOOL CALL ALLOWED — tool=mcp:filesystem:read
-── Step 5: Revoke the agent
-  ✓ Revoked — ACTIVE → REVOKED
-── Step 6: Retry tool call — should now be BLOCKED
-  ✓ TOOL CALL BLOCKED as expected
+This package generally follows [SemVer](https://semver.org/spec/v2.0.0.html) conventions, though certain backwards-incompatible changes may be released as minor versions:
 
-── Scenario A: Rogue agent with a fake DNA ID
-  ⛔ BLOCKED — Agent DNA not found in registry
-── Scenario B: Agent registered but never activated
-  ⛔ BLOCKED — Agent not authorized — status: PENDING
-── Scenario C: Active then suspended
-  ⛔ BLOCKED — Agent not authorized — status: SUSPENDED
-```
+1. Changes to library internals which are technically public but not intended or documented for external use. _(Please open a GitHub issue to let us know if you are relying on such internals.)_
+2. Changes that we do not expect to impact the vast majority of users in practice.
 
-### Run the tests
+We take backwards-compatibility seriously and work hard to ensure you can rely on a smooth upgrade experience.
 
-```bash
-cd /Users/robson/code/agent-dna
-JAVA_HOME=.../openjdk-23.0.1/Contents/Home ./gradlew test
-# 57 tests, 0 failures
-```
-
-### Railway deployment notes
-
-- `dna-registry` binds to `PORT` in production and falls back to `8081` locally.
-- Railway healthchecks target `/q/health/ready`, not `/v1/agents`.
-- The registry API still serves on `:8081` in local Docker Compose and local development.
-
----
-
-## What This Is Trying to Address
-
-### The immediate gap
-MCP (Model Context Protocol) gives agents structured access to tools — filesystems, browsers, APIs, databases. There is no standard that says *which agents* are allowed to call those tools. Any process with network access can call an MCP server today.
-
-### The broader risk
-As agents become autonomous and long-running, the attack surface expands:
-- **Prompt injection** causes a legitimate agent to act maliciously — it should be suspendable without stopping the whole system
-- **Compromised agents** can be revoked at the identity layer before they cause further damage
-- **Rogue third-party agents** claim capabilities they haven't been granted
-
-### What Agent DNA provides
-1. **Identity** — every agent has a unique, unforgeable record anchored to a public key
-2. **Authorisation intent** — the `capabilities` field records the scope an agent declares; hard enforcement in the enforcer is still roadmap work
-3. **Real-time revocation** — revoking a record blocks that agent at every enforcer in the network, globally, without redeploying anything
-4. **Jurisdiction and ownership** — governments and enterprises can see which agents are operating in their space and who owns them
-5. **Audit trail** — every state transition is timestamped and immutable
-
-### The analogy that matters
-When a TLS certificate is compromised, you revoke it. Certificate Transparency logs let anyone verify revocation. Browsers check CRL/OCSP before trusting a connection.
-
-Agent DNA is the equivalent infrastructure layer for AI agents. The registry is the CA. The enforcer is the OCSP check. The revocation is global and instant.
-
-### Who needs to agree on this
-For this to work at internet scale, the major AI platforms need to agree on:
-1. A standard DNA record schema (this POC proposes one)
-2. A shared or federated registry (or a protocol for registry interoperability)
-3. An enforcer interface that MCP tool servers implement natively
-
-This POC is the working proof of concept to open that conversation with Anthropic, OpenAI, Microsoft, and Google.
-
----
-
-## Technical Stack
-
-| Layer | Technology |
-|---|---|
-| Services | Java 23 runtime/toolchain, Quarkus 3.17.6, JAX-RS |
-| Persistence | PostgreSQL via Quarkus Dev Services, jOOQ 3.19.6, Flyway |
-| Patterns | CQRS command handlers, idempotency keys, optimistic locking, outbox |
-| Portal | Next.js 15, React 19, Tailwind CSS, TypeScript |
-| Tests | JUnit 5, Mockito, AssertJ — 57 tests, 0 failures |
-| Demo | Python 3 + requests |
-
----
-
-## Roadmap (beyond this POC)
-
-- **Mandatory signature enforcement** — reject unsigned tool calls instead of verifying signatures only when provided
-- **Capability enforcement** — enforcer checks requested tool against the agent's declared `capabilities` list
-- **Federated registries** — multiple org-level registries with cross-registry trust (like DNS zones)
-- **Event streaming** — revocation events published to Kafka so enforcers update in near-real-time without polling
-- **Agent SDK** — one-line integration for LangChain4j, LangGraph, AutoGen, CrewAI
-- **Governance dashboard** — jurisdiction-level views for regulatory bodies
-
----
-
-*Built as a working proof of concept — not slideware.*
+We are keen for your feedback; please open an [issue](https://www.github.com/stainless-sdks/agentregistry-java/issues) with questions, bugs, or suggestions.
