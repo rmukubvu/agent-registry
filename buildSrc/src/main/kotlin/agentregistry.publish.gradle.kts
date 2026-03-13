@@ -11,7 +11,7 @@ configure<PublishingExtension> {
             pom {
                 name.set("Agent DNA API")
                 description.set("This combined specification exposes the Agent DNA Registry and Agent DNA\nEnforcer in a single OpenAPI document. It is intended for generating one SDK\nwith separate logical surfaces for registry management and runtime enforcement.")
-                url.set("https://www.github.com/rmukubvu/agent-dna")
+                url.set("https://www.github.com/rmukubvu/agent-registry")
 
                 licenses {
                     license {
@@ -26,9 +26,9 @@ configure<PublishingExtension> {
                 }
 
                 scm {
-                    connection.set("scm:git:git://github.com/rmukubvu/agent-dna.git")
-                    developerConnection.set("scm:git:git://github.com/rmukubvu/agent-dna.git")
-                    url.set("https://github.com/rmukubvu/agent-dna")
+                    connection.set("scm:git:git://github.com/rmukubvu/agent-registry.git")
+                    developerConnection.set("scm:git:git://github.com/rmukubvu/agent-registry.git")
+                    url.set("https://github.com/rmukubvu/agent-registry")
                 }
 
                 versionMapping {
