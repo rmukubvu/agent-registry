@@ -2,8 +2,8 @@
 
 <!-- x-release-please-start-version -->
 
-[![Maven Central](https://img.shields.io/maven-central/v/com.agentregistry.api/agentregistry-java)](https://central.sonatype.com/artifact/com.agentregistry.api/agentregistry-java/0.0.2)
-[![javadoc](https://javadoc.io/badge2/com.agentregistry.api/agentregistry-java/0.0.2/javadoc.svg)](https://javadoc.io/doc/com.agentregistry.api/agentregistry-java/0.0.2)
+[![Maven Central](https://img.shields.io/maven-central/v/com.agentregistry.api/agentregistry-java)](https://central.sonatype.com/artifact/com.agentregistry.api/agentregistry-java/0.0.3)
+[![javadoc](https://javadoc.io/badge2/com.agentregistry.api/agentregistry-java/0.0.3/javadoc.svg)](https://javadoc.io/doc/com.agentregistry.api/agentregistry-java/0.0.3)
 
 <!-- x-release-please-end -->
 
@@ -13,7 +13,7 @@ It is generated with [Stainless](https://www.stainless.com/).
 
 <!-- x-release-please-start-version -->
 
-Javadocs are available on [javadoc.io](https://javadoc.io/doc/com.agentregistry.api/agentregistry-java/0.0.2).
+Javadocs are available on [javadoc.io](https://javadoc.io/doc/com.agentregistry.api/agentregistry-java/0.0.3).
 
 <!-- x-release-please-end -->
 
@@ -24,7 +24,7 @@ Javadocs are available on [javadoc.io](https://javadoc.io/doc/com.agentregistry.
 ### Gradle
 
 ```kotlin
-implementation("com.agentregistry.api:agentregistry-java:0.0.2")
+implementation("com.agentregistry.api:agentregistry-java:0.0.3")
 ```
 
 ### Maven
@@ -33,7 +33,7 @@ implementation("com.agentregistry.api:agentregistry-java:0.0.2")
 <dependency>
   <groupId>com.agentregistry.api</groupId>
   <artifactId>agentregistry-java</artifactId>
-  <version>0.0.2</version>
+  <version>0.0.3</version>
 </dependency>
 ```
 
