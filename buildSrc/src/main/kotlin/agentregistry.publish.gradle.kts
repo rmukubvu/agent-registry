@@ -11,7 +11,7 @@ configure<PublishingExtension> {
             pom {
                 name.set("Agent DNA API")
                 description.set("This combined specification exposes the Agent DNA Registry and Agent DNA\nEnforcer in a single OpenAPI document. It is intended for generating one SDK\nwith separate logical surfaces for registry management and runtime enforcement.")
-                url.set("https://www.github.com/stainless-sdks/agentregistry-java")
+                url.set("https://www.github.com/rmukubvu/agent-dna")
 
                 licenses {
                     license {
@@ -26,9 +26,9 @@ configure<PublishingExtension> {
                 }
 
                 scm {
-                    connection.set("scm:git:git://github.com/stainless-sdks/agentregistry-java.git")
-                    developerConnection.set("scm:git:git://github.com/stainless-sdks/agentregistry-java.git")
-                    url.set("https://github.com/stainless-sdks/agentregistry-java")
+                    connection.set("scm:git:git://github.com/rmukubvu/agent-dna.git")
+                    developerConnection.set("scm:git:git://github.com/rmukubvu/agent-dna.git")
+                    url.set("https://github.com/rmukubvu/agent-dna")
                 }
 
                 versionMapping {
