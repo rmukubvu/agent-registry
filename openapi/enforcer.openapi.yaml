@@ -1,0 +1,107 @@
+openapi: 3.1.0
+info:
+  title: Agent DNA Enforcer API
+  version: 1.0.0
+  summary: Runtime policy checks for Agent DNA protected tool calls.
+  description: >
+    The Agent DNA Enforcer evaluates a tool invocation against registry state and,
+    optionally, a request signature. Clients send a DNA identifier and tool request,
+    and receive an allow or deny decision.
+servers:
+  - url: https://enforcer-production.up.railway.app
+    description: Production
+  - url: http://localhost:8082
+    description: Local development
+tags:
+  - name: Enforcement
+    description: Runtime authorization operations.
+paths:
+  /q/health/live:
+    get:
+      operationId: getEnforcerLiveness
+      summary: Liveness health check
+      tags: [Enforcement]
+      responses:
+        '200':
+          description: Enforcer is live.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+  /v1/enforce:
+    post:
+      operationId: enforceToolCall
+      summary: Evaluate a tool call against Agent DNA policy
+      tags: [Enforcement]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnforceRequest'
+      responses:
+        '200':
+          description: Allow or deny decision.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnforceResponse'
+components:
+  schemas:
+    EnforceRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - dnaId
+        - toolName
+        - toolPayload
+      properties:
+        dnaId:
+          type: string
+          format: uuid
+        toolName:
+          type: string
+          description: Logical MCP tool name to authorize.
+        toolPayload:
+          type: object
+          additionalProperties: true
+          description: Tool-specific payload forwarded for policy evaluation.
+        signature:
+          type:
+            - string
+            - 'null'
+          description: Optional hex-encoded Ed25519 signature over "{dnaId}:{toolName}".
+    EnforceResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - allowed
+        - dnaId
+        - toolName
+      properties:
+        allowed:
+          type: boolean
+        dnaId:
+          type: string
+          format: uuid
+        agentName:
+          type:
+            - string
+            - 'null'
+        toolName:
+          type: string
+        reason:
+          type:
+            - string
+            - 'null'
+    HealthStatus:
+      type: object
+      additionalProperties: true
+      properties:
+        status:
+          type: string
+        checks:
+          type: array
+          items:
+            type: object
+            additionalProperties: true

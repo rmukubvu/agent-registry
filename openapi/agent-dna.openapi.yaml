@@ -1,0 +1,621 @@
+openapi: 3.1.0
+info:
+  title: Agent DNA API
+  version: 1.0.0
+  summary: Combined registry and enforcer API for Agent DNA clients.
+  description: >
+    This combined specification exposes the Agent DNA Registry and Agent DNA Enforcer
+    in a single OpenAPI document. It is intended for generating one SDK with separate
+    logical surfaces for registry management and runtime enforcement.
+tags:
+  - name: Registry
+    description: Agent registration, governance, lifecycle, and verification.
+  - name: Enforcer
+    description: Runtime tool-call enforcement.
+paths:
+  /q/health/ready:
+    servers:
+      - url: https://registry-production-0f52.up.railway.app
+        description: Production registry
+      - url: http://localhost:8081
+        description: Local registry
+    get:
+      operationId: getRegistryReadiness
+      summary: Registry readiness health check
+      tags: [Registry]
+      responses:
+        '200':
+          description: Registry is ready.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+  /v1/agents:
+    servers:
+      - url: https://registry-production-0f52.up.railway.app
+        description: Production registry
+      - url: http://localhost:8081
+        description: Local registry
+    get:
+      operationId: listAgents
+      summary: List all agent records
+      tags: [Registry]
+      responses:
+        '200':
+          description: Agent records ordered by creation time descending.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AgentRecord'
+    post:
+      operationId: registerAgent
+      summary: Register a new agent
+      tags: [Registry]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterAgentRequest'
+      responses:
+        '201':
+          description: Agent registered in PENDING status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterAgentResponse'
+        '400':
+          description: Invalid request payload.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Registration rejected by issuance policy.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/agents/{dnaId}/activate:
+    servers:
+      - url: https://registry-production-0f52.up.railway.app
+        description: Production registry
+      - url: http://localhost:8081
+        description: Local registry
+    put:
+      operationId: activateAgent
+      summary: Approve and activate an agent
+      tags: [Registry]
+      parameters:
+        - $ref: '#/components/parameters/DnaId'
+        - name: idemKey
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: approvedBy
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: approvalReason
+          in: query
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivateAgentRequest'
+      responses:
+        '200':
+          description: Agent activated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentTransitionResponse'
+        '400':
+          description: Missing governance approval metadata.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Agent record not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Invalid lifecycle transition.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/agents/{dnaId}/suspend:
+    servers:
+      - url: https://registry-production-0f52.up.railway.app
+        description: Production registry
+      - url: http://localhost:8081
+        description: Local registry
+    put:
+      operationId: suspendAgent
+      summary: Suspend an active agent
+      tags: [Registry]
+      parameters:
+        - $ref: '#/components/parameters/DnaId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SuspendAgentRequest'
+      responses:
+        '200':
+          description: Agent suspended successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentTransitionResponse'
+        '404':
+          description: Agent record not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Invalid lifecycle transition.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/agents/{dnaId}/reinstate:
+    servers:
+      - url: https://registry-production-0f52.up.railway.app
+        description: Production registry
+      - url: http://localhost:8081
+        description: Local registry
+    put:
+      operationId: reinstateAgent
+      summary: Reinstate a suspended agent
+      tags: [Registry]
+      parameters:
+        - $ref: '#/components/parameters/DnaId'
+        - name: idemKey
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent reinstated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentTransitionResponse'
+        '404':
+          description: Agent record not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Invalid lifecycle transition.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/agents/{dnaId}/revoke:
+    servers:
+      - url: https://registry-production-0f52.up.railway.app
+        description: Production registry
+      - url: http://localhost:8081
+        description: Local registry
+    put:
+      operationId: revokeAgent
+      summary: Revoke an agent permanently
+      tags: [Registry]
+      parameters:
+        - $ref: '#/components/parameters/DnaId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RevokeAgentRequest'
+      responses:
+        '200':
+          description: Agent revoked successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentTransitionResponse'
+        '404':
+          description: Agent record not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Invalid lifecycle transition.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/agents/{dnaId}/verify:
+    servers:
+      - url: https://registry-production-0f52.up.railway.app
+        description: Production registry
+      - url: http://localhost:8081
+        description: Local registry
+    get:
+      operationId: verifyAgent
+      summary: Verify whether an agent is currently authorized
+      tags: [Registry]
+      parameters:
+        - $ref: '#/components/parameters/DnaId'
+      responses:
+        '200':
+          description: Verification result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyAgentResponse'
+        '404':
+          description: Agent record not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /q/health/live:
+    servers:
+      - url: https://enforcer-production.up.railway.app
+        description: Production enforcer
+      - url: http://localhost:8082
+        description: Local enforcer
+    get:
+      operationId: getEnforcerLiveness
+      summary: Enforcer liveness health check
+      tags: [Enforcer]
+      responses:
+        '200':
+          description: Enforcer is live.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+  /v1/enforce:
+    servers:
+      - url: https://enforcer-production.up.railway.app
+        description: Production enforcer
+      - url: http://localhost:8082
+        description: Local enforcer
+    post:
+      operationId: enforceToolCall
+      summary: Evaluate a tool call against Agent DNA policy
+      tags: [Enforcer]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnforceRequest'
+      responses:
+        '200':
+          description: Allow or deny decision.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnforceResponse'
+components:
+  parameters:
+    DnaId:
+      name: dnaId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    AgentStatus:
+      type: string
+      enum: [PENDING, ACTIVE, SUSPENDED, REVOKED]
+    RegisterAgentRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - agentName
+        - publicKeyHex
+        - ownerId
+        - ownerName
+        - jurisdiction
+        - capabilities
+        - idemKey
+      properties:
+        agentName:
+          type: string
+        publicKeyHex:
+          type: string
+        workloadIdentity:
+          type:
+            - string
+            - 'null'
+        provenanceRef:
+          type:
+            - string
+            - 'null'
+        ownerId:
+          type: string
+          format: uuid
+        ownerName:
+          type: string
+        jurisdiction:
+          type: string
+        capabilities:
+          type: array
+          items:
+            type: string
+        parentDnaId:
+          type:
+            - string
+            - 'null'
+          format: uuid
+        expiresAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        idemKey:
+          type: string
+    RegisterAgentResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - dnaId
+        - agentName
+        - status
+      properties:
+        dnaId:
+          type: string
+          format: uuid
+        agentName:
+          type: string
+        status:
+          $ref: '#/components/schemas/AgentStatus'
+    ActivateAgentRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - idemKey
+        - approvedBy
+        - approvalReason
+      properties:
+        idemKey:
+          type: string
+        approvedBy:
+          type: string
+        approvalReason:
+          type: string
+    SuspendAgentRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - reason
+        - idemKey
+      properties:
+        reason:
+          type: string
+        idemKey:
+          type: string
+    RevokeAgentRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - reason
+        - idemKey
+      properties:
+        reason:
+          type: string
+        idemKey:
+          type: string
+    AgentTransitionResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - dnaId
+        - previousStatus
+        - newStatus
+      properties:
+        dnaId:
+          type: string
+          format: uuid
+        previousStatus:
+          $ref: '#/components/schemas/AgentStatus'
+        newStatus:
+          $ref: '#/components/schemas/AgentStatus'
+    VerifyAgentResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - dnaId
+        - agentName
+        - publicKeyHex
+        - status
+        - capabilities
+        - isAuthorized
+      properties:
+        dnaId:
+          type: string
+          format: uuid
+        parentDnaId:
+          type:
+            - string
+            - 'null'
+          format: uuid
+        agentName:
+          type: string
+        publicKeyHex:
+          type: string
+        status:
+          $ref: '#/components/schemas/AgentStatus'
+        capabilities:
+          type: array
+          items:
+            type: string
+        isAuthorized:
+          type: boolean
+        deniedReason:
+          type:
+            - string
+            - 'null'
+    AgentRecord:
+      type: object
+      additionalProperties: false
+      required:
+        - dnaId
+        - agentName
+        - publicKeyHex
+        - ownerId
+        - ownerName
+        - jurisdiction
+        - capabilities
+        - status
+        - createdAt
+        - updatedAt
+        - version
+      properties:
+        dnaId:
+          type: string
+          format: uuid
+        parentDnaId:
+          type:
+            - string
+            - 'null'
+          format: uuid
+        agentName:
+          type: string
+        publicKeyHex:
+          type: string
+        workloadIdentity:
+          type:
+            - string
+            - 'null'
+        provenanceRef:
+          type:
+            - string
+            - 'null'
+        ownerId:
+          type: string
+          format: uuid
+        ownerName:
+          type: string
+        jurisdiction:
+          type: string
+        capabilities:
+          type: array
+          items:
+            type: string
+        status:
+          $ref: '#/components/schemas/AgentStatus'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        approvedAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        approvedBy:
+          type:
+            - string
+            - 'null'
+        approvalReason:
+          type:
+            - string
+            - 'null'
+        revokedAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        revokedReason:
+          type:
+            - string
+            - 'null'
+        expiresAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        version:
+          type: integer
+          format: int32
+    EnforceRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - dnaId
+        - toolName
+        - toolPayload
+      properties:
+        dnaId:
+          type: string
+          format: uuid
+        toolName:
+          type: string
+        toolPayload:
+          type: object
+          additionalProperties: true
+        signature:
+          type:
+            - string
+            - 'null'
+    EnforceResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - allowed
+        - dnaId
+        - toolName
+      properties:
+        allowed:
+          type: boolean
+        dnaId:
+          type: string
+          format: uuid
+        agentName:
+          type:
+            - string
+            - 'null'
+        toolName:
+          type: string
+        reason:
+          type:
+            - string
+            - 'null'
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - error
+      properties:
+        error:
+          type: string
+    HealthStatus:
+      type: object
+      additionalProperties: true
+      properties:
+        status:
+          type: string
+        checks:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
