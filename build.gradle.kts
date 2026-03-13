@@ -9,7 +9,7 @@ repositories {
 
 allprojects {
     group = "com.agentregistry.api"
-    version = "0.0.4" // x-release-please-version
+    version = "0.0.5" // x-release-please-version
 }
 
 subprojects {
